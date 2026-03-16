@@ -49,6 +49,7 @@ Draws from [OWASP Top 10:2025](https://owasp.org/Top10/2025/), [OWASP Agentic To
 - Not runtime security — CSP headers, rate limiting, and auth middleware must be implemented in your code
 - Not immune to context compaction — in long sessions, Claude may summarize rules away. Hooks are immune; text rules are not
 - Not bypass-proof — `--dangerously-skip-permissions` disables all hooks and deny rules
+- Not immune to training — AI models have behaviors conditioned by their training pipeline that text rules cannot fully override. For example, Claude defaults to `Co-Authored-By` attribution in commits despite this repo's rules explicitly saying not to. Rules reduce the problem; they don't eliminate it. Hooks and deny rules are stronger than text instructions.
 
 ## Installation
 
