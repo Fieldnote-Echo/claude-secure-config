@@ -102,6 +102,18 @@ teardown() {
   assert [ "$status" -eq 2 ]
 }
 
+@test "/bin/cat .env is blocked (H6 path-qualified regression)" {
+  run run_pretooluse_hook '{"command": "/bin/cat .env"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
+@test "/bin/chmod +s /tmp/file is blocked (H6 chmod path regression)" {
+  run run_pretooluse_hook '{"command": "/bin/chmod +s /tmp/file"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
 @test "hooks.md template command blocks rm -rf (docs wiring smoke test)" {
   # Extract the literal PreToolUse command from hooks.md and verify it works
   local hooks_md
