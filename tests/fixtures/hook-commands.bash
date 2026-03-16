@@ -21,7 +21,7 @@ run_pretooluse_hook() {
 
     # git push --force (allow --force-with-lease and --force-if-includes)
     if printf "%s" "$CMD" | grep -qE "git[ ]+push[ ]+.*(-f|--force)" && \
-       ! printf "%s" "$CMD" | grep -qE "--force-with-lease|--force-if-includes"; then
+       ! printf "%s" "$CMD" | grep -qE -- "--force-with-lease|--force-if-includes"; then
       echo "BLOCKED: Use --force-with-lease instead of --force." >&2; exit 2
     fi
 

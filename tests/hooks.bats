@@ -2,7 +2,12 @@
 
 setup() {
   load "test_helper/common"
+  _common_setup
   source "$(dirname "$BATS_TEST_DIRNAME")/tests/fixtures/hook-commands.bash"
+}
+
+teardown() {
+  _common_teardown
 }
 
 @test "rm -rf is blocked" {
@@ -49,8 +54,8 @@ setup() {
   local hooks_md
   hooks_md="$(dirname "$BATS_TEST_DIRNAME")/hooks.md"
   local hook_cmd
-  # Extract the command value from the JSON template in hooks.md
-  hook_cmd="$(sed -n '/"matcher": "Bash"/,/"command":/{ s/.*"command": "//; s/"$//; p; }' "$hooks_md" | head -1)"
+  # Grep for the command line directly, strip JSON wrapper
+  hook_cmd="$(grep '"command": "bash -c' "$hooks_md" | head -1 | sed "s/.*\"command\": \"//; s/\"$//")"
 
   if [ -z "$hook_cmd" ]; then
     skip "Could not extract hook command from hooks.md"

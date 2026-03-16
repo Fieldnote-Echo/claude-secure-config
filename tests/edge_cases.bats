@@ -2,6 +2,11 @@
 
 setup() {
   load "test_helper/common"
+  _common_setup
+}
+
+teardown() {
+  _common_teardown
 }
 
 @test "paths with spaces work" {

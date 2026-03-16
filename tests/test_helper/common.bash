@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 
 # Load bats helpers
-load "bats-support/load"
-load "bats-assert/load"
+load "test_helper/bats-support/load"
+load "test_helper/bats-assert/load"
 
 # Path to the setup.sh under test
 SETUP_SH="$(cd "$(dirname "${BATS_TEST_DIRNAME}")" && pwd)/setup.sh"
 export SETUP_SH
 
-# --- Setup / Teardown ---
+# --- Setup / Teardown (call from each test file's setup/teardown) ---
 
-setup() {
+_common_setup() {
   # Create isolated temp directory for each test
   TEST_TEMP_DIR="$(mktemp -d)"
   export TEST_TEMP_DIR
 }
 
-teardown() {
+_common_teardown() {
   # Clean up temp directory
   if [ -n "${TEST_TEMP_DIR:-}" ] && [ -d "$TEST_TEMP_DIR" ]; then
     rm -rf "$TEST_TEMP_DIR"
@@ -60,7 +60,8 @@ assert_marker_shape() {
   # Line 3: ISO-8601 UTC timestamp
   local line3
   line3="$(sed -n '3p' "$marker")"
-  assert [[ "$line3" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]
+  echo "$line3" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$'
+  assert [ $? -eq 0 ]
 
   # Line 4: version is non-empty
   local line4
@@ -70,7 +71,7 @@ assert_marker_shape() {
   # Line 5: empty or --copy
   local line5
   line5="$(sed -n '5p' "$marker")"
-  assert [[ -z "$line5" || "$line5" = "--copy" ]]
+  assert [ -z "$line5" ] || assert [ "$line5" = "--copy" ]
 }
 
 # Skip symlink tests on Windows copy-only mode

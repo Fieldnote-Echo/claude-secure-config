@@ -4,12 +4,24 @@ default: true
 # Allow long lines (rule files have inline code and URLs)
 MD013: false
 
+# Allow headings without surrounding blank lines (compact doc style)
+MD022: false
+
 # Allow duplicate headings across files (e.g., ## Error Handling in multiple files)
 MD024:
   siblings_only: true
+
+# Allow lists without surrounding blank lines (compact doc style)
+MD032: false
 
 # Allow HTML comments (used for priority annotations)
 MD033: false
 
 # Allow bare URLs (common in rule files)
 MD034: false
+
+# Allow fenced code blocks without language specifier
+MD040: false
+
+# Allow flexible table formatting (compact tables in rule files)
+MD060: false
