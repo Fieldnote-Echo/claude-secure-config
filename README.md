@@ -24,6 +24,7 @@ Layer 3: Scaffold   → "Why are we doing this?"  (cognitive partnership)
 |------|---------|
 | `rules/cognitive-scaffold.md` | Reasoning/inference distinction, friction worth keeping, anti-sycophancy, comfort-growth awareness |
 | `rules/deliberation.md` | When to pause vs act, progressive trust, consequence-reversibility matrix, pushing back |
+| `rules/task-protocol.md` | Preflight/strategy/review scaffold for any non-trivial task |
 
 ### Layer 2: Rules
 

@@ -38,6 +38,10 @@ readonly SCRIPT_DIR
 readonly RULES_DIR="$SCRIPT_DIR/rules"
 readonly INTERNAL_DIR="$SCRIPT_DIR/internal"
 
+# Explicit allowlist of shared rule files — no wildcards for security
+# If you add a new rule file to rules/, add it here
+readonly SHARED_RULES="code-hygiene.md cognitive-scaffold.md commit-preferences.md deliberation.md git-conventions.md security.md task-protocol.md"
+
 # --- Helpers ---
 
 die() {
@@ -84,6 +88,7 @@ Install shared Claude Code rules into a target repository.
 Options:
   --copy        Copy files instead of symlinking (required on Windows without WSL)
   --internal    Also install custom rules from internal/ (requires confirmation)
+  --yes, -y     Skip confirmation prompts (for CI/scripted usage)
   --uninstall   Remove all rules installed by this tool
   --status      Show what's currently installed
   --dry-run     Preview what would happen without making changes
@@ -108,11 +113,13 @@ ACTION="install"
 DRY_RUN=false
 FORCE=false
 INSTALL_INTERNAL=false
+CONFIRM_YES=false
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --copy)      MODE="--copy"; shift ;;
     --internal)  INSTALL_INTERNAL=true; shift ;;
+    --yes|-y)    CONFIRM_YES=true; shift ;;
     --uninstall) ACTION="uninstall"; shift ;;
     --status)    ACTION="status"; shift ;;
     --dry-run)   DRY_RUN=true; shift ;;
@@ -264,19 +271,19 @@ do_install() {
     die "Rules directory not found at '$RULES_DIR'. Is this repo intact?"
   fi
 
-  local shared_count
-  shared_count="$(count_md_files "$RULES_DIR")"
+  # Validate at least one allowlisted rule file exists
+  local shared_count=0
+  for _rule_name in $SHARED_RULES; do
+    [ -f "$RULES_DIR/$_rule_name" ] && shared_count=$((shared_count + 1))
+  done
   if [ "$shared_count" -eq 0 ]; then
-    die "No .md files found in '$RULES_DIR'. Nothing to install."
+    die "No allowlisted rule files found in '$RULES_DIR'. Is this repo intact?"
   fi
 
   # Check for non-managed files in destination that would be overwritten
   if [ -d "$DEST" ] && [ "$FORCE" = false ]; then
     local conflicts=""
-    for rule in "$RULES_DIR"/*.md; do
-      [ -f "$rule" ] || continue
-      local name
-      name="$(basename "$rule")"
+    for name in $SHARED_RULES; do
       local dest_file="$DEST/$name"
       if [ -e "$dest_file" ] && [ ! -L "$dest_file" ]; then
         conflicts="${conflicts}  $name\n"
@@ -312,7 +319,43 @@ do_install() {
 
   local installed=0
 
-  install_rules() {
+  # Install specific named files from a directory
+  install_rules_explicit() {
+    local src_dir="$1"
+    local label="$2"
+    shift 2
+
+    for filename in "$@"; do
+      local rule="$src_dir/$filename"
+      if [ ! -f "$rule" ]; then
+        warn "Expected rule file '$filename' not found in $src_dir — skipping."
+        continue
+      fi
+      local dest_file="$DEST/$filename"
+
+      if [ "$DRY_RUN" = true ]; then
+        if [ "$MODE" = "--copy" ]; then
+          echo "  Would copy $filename ($label)"
+        else
+          echo "  Would link $filename ($label)"
+        fi
+      elif [ "$MODE" = "--copy" ]; then
+        if ! cp "$rule" "$dest_file"; then
+          die "Failed to copy '$rule' to '$dest_file'."
+        fi
+        echo "  Copied $filename ($label)"
+      else
+        if ! ln -sf "$rule" "$dest_file"; then
+          die "Failed to create symlink '$dest_file' -> '$rule'."
+        fi
+        echo "  Linked $filename ($label)"
+      fi
+      installed=$((installed + 1))
+    done
+  }
+
+  # Install all .md files from a directory (used for internal/ only)
+  install_rules_glob() {
     local src_dir="$1"
     local label="$2"
 
@@ -344,7 +387,7 @@ do_install() {
   }
 
   echo "Installing shared rules..."
-  install_rules "$RULES_DIR" "shared"
+  install_rules_explicit "$RULES_DIR" "shared" $SHARED_RULES
 
   # Install internal/custom rules only when explicitly requested
   if [ "$INSTALL_INTERNAL" = true ]; then
@@ -359,19 +402,27 @@ do_install() {
           echo "  $(basename "$rule")"
         done
         if [ "$DRY_RUN" = false ]; then
-          printf "\nInstall these custom rules? [y/N] "
-          read -r confirm
-          if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
-            echo "Skipped internal rules."
-          else
+          if [ "$CONFIRM_YES" = true ]; then
             echo ""
-            echo "Installing internal rules..."
-            install_rules "$INTERNAL_DIR" "internal"
+            echo "Installing internal rules (--yes confirmed)..."
+            install_rules_glob "$INTERNAL_DIR" "internal"
+          elif [ -t 0 ]; then
+            printf "\nInstall these custom rules? [y/N] "
+            read -r confirm
+            if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+              echo "Skipped internal rules."
+            else
+              echo ""
+              echo "Installing internal rules..."
+              install_rules_glob "$INTERNAL_DIR" "internal"
+            fi
+          else
+            die "Non-interactive shell detected. Use --yes to confirm internal rule installation."
           fi
         else
           echo ""
           echo "Internal rules (dry run)..."
-          install_rules "$INTERNAL_DIR" "internal"
+          install_rules_glob "$INTERNAL_DIR" "internal"
         fi
       fi
     else

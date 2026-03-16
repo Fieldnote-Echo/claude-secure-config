@@ -85,7 +85,7 @@ teardown() {
   assert_success
   local count
   count="$(count_installed_rules)"
-  assert_equal "$count" "6"
+  assert_equal "$count" "7"
 }
 
 @test "internal rules installed when present" {
@@ -98,7 +98,7 @@ teardown() {
   mkdir -p "$script_dir/internal"
   echo "# test rule" > "$script_dir/internal/test-internal.md"
 
-  run bash "$SETUP_SH" "$TEST_TEMP_DIR"
+  run bash "$SETUP_SH" "$TEST_TEMP_DIR" --internal --yes
   assert_success
   assert [ -e "$TEST_TEMP_DIR/.claude/rules/org/test-internal.md" ]
   assert_output --partial "internal"
