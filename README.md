@@ -90,6 +90,24 @@ Reference rules directly from your `CLAUDE.md`:
 
 The path must resolve on every developer's machine. For teams, prefer symlinks or copies.
 
+## setup.sh reference
+
+| Flag | Description |
+|------|-------------|
+| `--copy` | Copy files instead of symlinking (required on Windows without WSL) |
+| `--internal` | Also install custom rules from `internal/` (requires confirmation) |
+| `--yes`, `-y` | Skip confirmation prompts (for CI/scripted usage) |
+| `--uninstall` | Remove all rules installed by this tool |
+| `--status` | Show what's currently installed |
+| `--dry-run` | Preview what would happen without making changes |
+| `--force` | Overwrite non-symlink files in `org/` without prompting |
+| `--version` | Show version |
+| `--help` | Show usage help |
+
+### Provenance tracking
+
+Each install writes a `.claude-secure-config` marker file to the target's `org/` directory, recording the source path, timestamp, version, and install mode. This enables `--status` to report installation details and `--uninstall` to verify ownership before removing files. Orphaned files (present in `org/` but no longer in the source) are detected and reported after each install.
+
 ## How it works
 
 Claude Code loads `.md` files from `.claude/rules/` as project instructions:
@@ -100,7 +118,7 @@ Claude Code loads `.md` files from `.claude/rules/` as project instructions:
 .claude/rules/org/*.md     → Shared rules (from this repo)
 ```
 
-This repo's rules total ~310 lines. Total budget across all loaded rules is roughly 500-800 lines before attention degrades — leaves room for project-specific additions.
+This repo's rules total ~347 lines. Total budget across all loaded rules is roughly 500-800 lines before attention degrades — leaves room for project-specific additions.
 
 ## Hooks
 
