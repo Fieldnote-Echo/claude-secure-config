@@ -54,7 +54,7 @@ run_pretooluse_hook() {
     fi
 
     # Bash access to .env / secrets
-    if printf "%s" "$CMD" | grep -qE "(cat|less|more|head|tail|source|cp|mv|base64|xxd|grep)[ ]+.*\.env([[:space:]]|$)|secrets/"; then
+    if printf "%s" "$CMD" | grep -qE "(cat|less|more|head|tail|source|cp|mv|base64|xxd|grep)[ ]+(.*\.env([[:space:]]|$)|.*secrets/)"; then
       echo "BLOCKED: Direct access to .env or secrets/." >&2; exit 2
     fi
 

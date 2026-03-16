@@ -49,6 +49,17 @@ teardown() {
   assert_success
 }
 
+@test "cat secrets/config is blocked (C1 regression)" {
+  run run_pretooluse_hook '{"command": "cat secrets/config.yml"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
+@test "ls src/secrets/ is not blocked (C1 false positive regression)" {
+  run run_pretooluse_hook '{"command": "ls src/secrets/"}'
+  assert_success
+}
+
 @test "hooks.md template command blocks rm -rf (docs wiring smoke test)" {
   # Extract the literal PreToolUse command from hooks.md and verify it works
   local hooks_md
