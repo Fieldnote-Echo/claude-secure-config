@@ -60,6 +60,13 @@ teardown() {
   assert_success
 }
 
+@test "newline-separated cat .env is blocked (H1 regression)" {
+  # Use JSON-escaped newline (\n) which jq will decode to a real newline in the command value
+  run run_pretooluse_hook '{"command": "cat\n.env"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
 @test "hooks.md template command blocks rm -rf (docs wiring smoke test)" {
   # Extract the literal PreToolUse command from hooks.md and verify it works
   local hooks_md

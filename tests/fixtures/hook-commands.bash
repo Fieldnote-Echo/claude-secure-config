@@ -14,6 +14,9 @@ run_pretooluse_hook() {
     CMD=$(printf "%s" "$CLAUDE_TOOL_INPUT" | jq -r ".command // .tool_input.command // empty" 2>/dev/null)
     if [ -z "$CMD" ]; then exit 0; fi
 
+    # Normalize newlines to spaces (stripping would merge tokens: cat\n.env → cat.env)
+    CMD=$(printf "%s" "$CMD" | tr "\n\r" "  ")
+
     # rm with recursive+force
     if printf "%s" "$CMD" | grep -qE "(^|[;|&])[ ]*((/usr/bin/|/bin/)?rm[ ]+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r|--recursive|--force))"; then
       echo "BLOCKED: Recursive force-delete detected." >&2; exit 2
