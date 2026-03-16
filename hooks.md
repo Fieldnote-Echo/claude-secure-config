@@ -69,17 +69,17 @@ The PostToolUse auto-format hook assumes Prettier is a project dependency. Remov
 Fail-closed design: if `jq` is missing or JSON parsing fails, the hook blocks. All regex uses `grep -E` (works on macOS, Linux, WSL, Git Bash).
 
 **Blocked patterns:**
-- `rm` with any combination of recursive + force flags (`-rf`, `-fr`, `-r -f`, `--recursive`, `--force`), including path-qualified `/bin/rm`
-- `git push --force` and `git push -f` (allows safe `--force-with-lease` and `--force-if-includes`)
+- `rm` — short flags require both recursive and force (`-rf`, `-fr`); long flags `--recursive` and `--force` match independently. Path-qualified (`/bin/rm`, `/usr/bin/rm`) is handled.
+- `git push --force` and `git push -f` — scans each push segment individually (allows safe `--force-with-lease` and `--force-if-includes` per-segment)
 - Direct pushes to main/master, including refspec syntax (`HEAD:main`)
 - `git checkout .`, `git checkout -- .`, `git restore .`, `git reset --hard`, `git clean -f`, `git branch -D`, `git stash drop`, `git stash clear`, `git push --delete`
-- `--no-verify` only on git commands (won't false-positive on commit messages or echo statements)
-- Pipe to shell (`| bash`, `| sh`)
-- Nested shell execution (`bash -c`, `sh -c`)
+- `--no-verify` on git commands: `commit`, `merge`, `push`, `rebase`, `cherry-pick`, `am` (won't false-positive on echo statements)
+- Pipe to shell (`| bash`, `| sh`, `| dash`, `| ksh`, `| zsh`, `| fish`)
+- Nested shell execution (`bash -c`, `sh -c`, `dash -c`, `ksh -c`, `zsh -c`, `fish -c`)
 - `eval` calls
-- Bash-level access to `.env` files and `secrets/` (`cat .env`, `source .env`, `cp .env`, etc.)
+- Bash-level access to `.env` files and `secrets/` via file-access verbs (`cat`, `less`, `more`, `head`, `tail`, `source`, `cp`, `mv`, `base64`, `xxd`, `grep`), including path-qualified (`/bin/cat`, `/usr/bin/cat`)
 - Symlinks involving `.env`
-- `chmod 777`/`chmod 000`, `dd` to block devices
+- `chmod 777`/`chmod 000`/`chmod +s` (setuid/setgid), including path-qualified. `dd` to block devices.
 
 ### PostToolUse: Auto-Format on Save
 Runs Prettier on edited files if installed as a project dependency. Uses `printf` instead of `echo` for portable path handling.
