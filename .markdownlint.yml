@@ -1,0 +1,15 @@
+# Repo-local markdownlint config
+default: true
+
+# Allow long lines (rule files have inline code and URLs)
+MD013: false
+
+# Allow duplicate headings across files (e.g., ## Error Handling in multiple files)
+MD024:
+  siblings_only: true
+
+# Allow HTML comments (used for priority annotations)
+MD033: false
+
+# Allow bare URLs (common in rule files)
+MD034: false
