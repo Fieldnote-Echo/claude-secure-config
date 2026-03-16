@@ -44,12 +44,12 @@ run_pretooluse_hook() {
     fi
 
     # Pipe to shell
-    if printf "%s" "$CMD" | grep -qE "[|][ ]*(bash|sh|zsh)([[:space:]]|$)"; then
+    if printf "%s" "$CMD" | grep -qE "[|][ ]*(bash|sh|dash|ksh|zsh|fish)([[:space:]]|$)"; then
       echo "BLOCKED: Pipe to shell detected." >&2; exit 2
     fi
 
     # Nested shell / eval
-    if printf "%s" "$CMD" | grep -qE "(^|[;|&])[ ]*(bash|sh)[ ]+-c[ ]"; then
+    if printf "%s" "$CMD" | grep -qE "(^|[;|&])[ ]*(bash|sh|dash|ksh|zsh|fish)[ ]+-c[ ]"; then
       echo "BLOCKED: Nested shell execution." >&2; exit 2
     fi
     if printf "%s" "$CMD" | grep -qE "(^|[;|&])[ ]*eval[ ]"; then

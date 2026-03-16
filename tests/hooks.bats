@@ -67,6 +67,18 @@ teardown() {
   assert [ "$status" -eq 2 ]
 }
 
+@test "echo foo | fish is blocked (H2 pipe regression)" {
+  run run_pretooluse_hook '{"command": "echo foo | fish"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
+@test "zsh -c cmd is blocked (H2 nested regression)" {
+  run run_pretooluse_hook '{"command": "zsh -c \"rm -rf /\""}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
 @test "hooks.md template command blocks rm -rf (docs wiring smoke test)" {
   # Extract the literal PreToolUse command from hooks.md and verify it works
   local hooks_md
