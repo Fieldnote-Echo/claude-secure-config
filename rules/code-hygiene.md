@@ -9,7 +9,7 @@ AI has no excuse for weak types — enforce the strictest mode your language sup
 - **Rust:** `#![deny(clippy::all, clippy::pedantic)]` — address warnings, don't suppress them
 - **Go:** `go vet`, `staticcheck` — fix all findings
 - Use the language's type system to make invalid states unrepresentable — prefer discriminated unions over loose string/boolean combos
-- Never use `as unknown as`, `@ts-ignore`, `@ts-expect-error`, or `# type: ignore` to bypass the type checker — fix the type instead
+- Never use `as unknown as`, `@ts-ignore`, `@ts-expect-error`, or `# type: ignore` to bypass the type checker. If the type is wrong, narrow it (`instanceof`, `in`, discriminant checks) or define a proper type guard.
 
 ## Error Handling
 

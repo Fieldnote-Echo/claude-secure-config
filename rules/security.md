@@ -5,7 +5,7 @@
 - Validate ALL untrusted input (request params, headers, file uploads, webhook payloads) at the system boundary
 - Validate type, length, range, and format — reject unexpected input rather than trying to clean it
 - Use schema validation (Zod, Pydantic, JSON Schema) on all external data — not just request bodies, but also WebSocket messages, SSE payloads, and third-party API responses
-- Never deserialize untrusted data with unsafe loaders (`pickle.loads`, `yaml.load` without SafeLoader, `eval`-based JSON parsing, Java `ObjectInputStream` without type filtering)
+- Never deserialize untrusted data with unsafe loaders. Use safe alternatives: `yaml.safe_load` not `yaml.load`, `json.loads` not `eval`, `JSON.parse` not `new Function`, Java `ObjectMapper` not `ObjectInputStream`
 - File uploads: validate MIME type server-side (not just extension), enforce size limits, store outside webroot with generated filenames
 
 ## Access Control
@@ -21,7 +21,7 @@
 
 - Use parameterized queries or prepared statements for all database access — never concatenate user input into SQL, NoSQL, ORM, or LDAP queries
 - Use allowlists and argument arrays for system commands — never pass user input to `exec`, `spawn`, `system`, or `eval`
-- Never use `eval()`, `Function()`, `new Function()`, or equivalent dynamic code execution with any data derived from user input
+- Never use `eval()`, `Function()`, `new Function()`, or equivalent dynamic code execution with any data derived from user input. Use lookup tables, switch statements, or schema-validated config objects instead.
 - Template engines: use auto-escaping by default; manually review any "raw" or "unescaped" output markers
 
 ## XSS Prevention
@@ -38,9 +38,9 @@
 
 ## Secrets
 
-- Never commit `.env`, credentials, API keys, or tokens — including as fallback/default values in code
+- Never commit `.env`, credentials, API keys, or tokens — including as fallback/default values in code. Use your platform's secret manager (Cloudflare dashboard, AWS SSM, Vault, CI environment variables).
 - Secrets belong in your deployment platform's secret manager, not in version control
-- Never hardcode JWT secrets, API keys, or tokens as fallback values (e.g., `process.env.SECRET || "default-secret"`)
+- Never hardcode JWT secrets, API keys, or tokens as fallback values. Instead of `process.env.SECRET || "default-secret"`, fail explicitly: `process.env.SECRET ?? throw new Error("SECRET not set")`
 
 ## Error Handling
 
@@ -66,7 +66,7 @@
 - Set on all responses: `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options` or CSP `frame-ancestors`
 - Session cookies: `HttpOnly`, `Secure`, `SameSite=Lax` minimum
 - Include CSRF tokens on all state-changing requests, or use `SameSite=Strict` cookies
-- Never ship debug mode, verbose errors, or development configs to production
+- Never ship debug mode, verbose errors, or development configs to production. Use environment-based gating (`if (env === 'development')`) and strip debug code at build time.
 
 ## Supply Chain
 
@@ -105,5 +105,5 @@
 ## Logging
 
 - Log auth failures (with IP), rate limit hits, and input validation failures
-- Never log tokens, API keys, passwords, or session secrets — even at debug level
-- Never log full request bodies that may contain PII
+- Never log tokens, API keys, passwords, or session secrets — even at debug level. Log a masked prefix and length instead: `sk-...****(47 chars)`
+- Never log full request bodies that may contain PII. Log request metadata (method, path, status, duration) and field names without values.
