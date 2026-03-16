@@ -13,6 +13,7 @@ Non-prescriptive planning scaffold. Generic. Stateless. Apply to any non-trivial
 - What approach fits the constraints?
 - What fails first?
 - What am I not seeing?
+- What skills and tools are available to me that serve grounded empiricism and robust correctness, even if they delay task completion?
 
 ## Execution Review
 
