@@ -177,7 +177,7 @@ do_status() {
   echo "Contents:"
   local found=false
   for f in "$DEST"/*; do
-    [ -e "$f" ] || continue
+    [ -e "$f" ] || [ -L "$f" ] || continue
     found=true
     local name
     name="$(basename "$f")"
