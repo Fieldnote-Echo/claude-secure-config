@@ -22,9 +22,8 @@ run_pretooluse_hook() {
       echo "BLOCKED: Recursive force-delete detected." >&2; exit 2
     fi
 
-    # git push --force (allow --force-with-lease and --force-if-includes)
-    if printf "%s" "$CMD" | grep -qE "git[ ]+push[ ]+.*(-f|--force)" && \
-       ! printf "%s" "$CMD" | grep -qE -- "--force-with-lease|--force-if-includes"; then
+    # git push --force — extract all push segments, filter to those with force, block if any lack the safe variant
+    if printf "%s" "$CMD" | grep -oE "git[ ]+push[^;|&]*" | grep -E -- "(-f|--force)" | grep -qvE -- "--force-with-lease|--force-if-includes"; then
       echo "BLOCKED: Use --force-with-lease instead of --force." >&2; exit 2
     fi
 

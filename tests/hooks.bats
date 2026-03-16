@@ -79,6 +79,12 @@ teardown() {
   assert [ "$status" -eq 2 ]
 }
 
+@test "safe push then unsafe push is blocked (H3 segment regression)" {
+  run run_pretooluse_hook '{"command": "git push --force-with-lease origin main && git push --force origin main"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
 @test "hooks.md template command blocks rm -rf (docs wiring smoke test)" {
   # Extract the literal PreToolUse command from hooks.md and verify it works
   local hooks_md
