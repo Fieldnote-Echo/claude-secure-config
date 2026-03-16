@@ -14,24 +14,28 @@ teardown() {
   run run_pretooluse_hook '{"command": "rm -rf /"}'
   assert_failure
   assert [ "$status" -eq 2 ]
+  assert_output --partial "BLOCKED"
 }
 
 @test "git push --force is blocked" {
   run run_pretooluse_hook '{"command": "git push --force origin main"}'
   assert_failure
   assert [ "$status" -eq 2 ]
+  assert_output --partial "BLOCKED"
 }
 
 @test "git push -f (short flag) is blocked" {
   run run_pretooluse_hook '{"command": "git push -f origin main"}'
   assert_failure
   assert [ "$status" -eq 2 ]
+  assert_output --partial "BLOCKED"
 }
 
 @test "cat .env is blocked" {
   run run_pretooluse_hook '{"command": "cat .env"}'
   assert_failure
   assert [ "$status" -eq 2 ]
+  assert_output --partial "BLOCKED"
 }
 
 @test "safe command passes through" {

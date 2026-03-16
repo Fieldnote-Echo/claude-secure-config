@@ -10,7 +10,7 @@ run_pretooluse_hook() {
 
   # This is the same logic as the PreToolUse hook in hooks.md
   bash -c '
-    command -v jq >/dev/null || { echo "BLOCKED: jq required" >&2; exit 2; }
+    command -v jq >/dev/null || { echo "BLOCKED: jq required for safety hooks" >&2; exit 2; }
     CMD=$(printf "%s" "$CLAUDE_TOOL_INPUT" | jq -r ".command // .tool_input.command // empty" 2>/dev/null)
     if [ -z "$CMD" ]; then exit 0; fi
 
@@ -19,7 +19,7 @@ run_pretooluse_hook() {
 
     # rm with recursive+force
     if printf "%s" "$CMD" | grep -qE "(^|[;|&])[ ]*((/usr/bin/|/bin/)?rm[ ]+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r|--recursive|--force))"; then
-      echo "BLOCKED: Recursive force-delete detected." >&2; exit 2
+      echo "BLOCKED: Recursive force-delete detected. Use explicit file paths." >&2; exit 2
     fi
 
     # git push --force — extract all push segments, filter to those with force, block if any lack the safe variant
@@ -29,12 +29,12 @@ run_pretooluse_hook() {
 
     # git push to main/master (including refspec)
     if printf "%s" "$CMD" | grep -qE "git[ ]+push[ ]+[^ ]+[ ]+(main|master)([ ]|$)|git[ ]+push[ ]+[^ ]+[ ]+[^ ]*:(main|master)"; then
-      echo "BLOCKED: Direct push to main/master." >&2; exit 2
+      echo "BLOCKED: Direct push to main/master. Use a PR." >&2; exit 2
     fi
 
     # Destructive git commands
     if printf "%s" "$CMD" | grep -qE "git[ ]+(checkout[ ]+(--[ ]+)?\.([ ]|$)|restore[ ]+\.|reset[ ]+--hard|clean[ ]+-[a-zA-Z]*f|branch[ ]+(-D|.*--force)|stash[ ]+(drop|clear)|push[ ]+[^ ]+[ ]+--delete)"; then
-      echo "BLOCKED: Destructive git command." >&2; exit 2
+      echo "BLOCKED: Destructive git command. Confirm with user first." >&2; exit 2
     fi
 
     # --no-verify on git commands only
@@ -44,20 +44,20 @@ run_pretooluse_hook() {
 
     # Pipe to shell
     if printf "%s" "$CMD" | grep -qE "[|][ ]*(bash|sh|dash|ksh|zsh|fish)([[:space:]]|$)"; then
-      echo "BLOCKED: Pipe to shell detected." >&2; exit 2
+      echo "BLOCKED: Pipe to shell detected. Run commands directly." >&2; exit 2
     fi
 
     # Nested shell / eval
     if printf "%s" "$CMD" | grep -qE "(^|[;|&])[ ]*(bash|sh|dash|ksh|zsh|fish)[ ]+-c[ ]"; then
-      echo "BLOCKED: Nested shell execution." >&2; exit 2
+      echo "BLOCKED: Nested shell execution. Run commands directly." >&2; exit 2
     fi
     if printf "%s" "$CMD" | grep -qE "(^|[;|&])[ ]*eval[ ]"; then
-      echo "BLOCKED: eval detected." >&2; exit 2
+      echo "BLOCKED: eval detected. Use explicit commands." >&2; exit 2
     fi
 
     # Bash access to .env / secrets
     if printf "%s" "$CMD" | grep -qE "((/usr/bin/|/bin/)?(cat|less|more|head|tail|source|cp|mv|base64|xxd|grep))[ ]+(.*\.env([[:space:]]|$)|.*secrets/)"; then
-      echo "BLOCKED: Direct access to .env or secrets/." >&2; exit 2
+      echo "BLOCKED: Direct access to .env or secrets/ via Bash. Use project configuration." >&2; exit 2
     fi
 
     # chmod 777/000/+s
@@ -72,7 +72,7 @@ run_pretooluse_hook() {
 
     # Symlink to .env
     if printf "%s" "$CMD" | grep -qE "ln[ ]+.*\.env"; then
-      echo "BLOCKED: Symlink involving .env." >&2; exit 2
+      echo "BLOCKED: Symlink involving .env detected." >&2; exit 2
     fi
 
     exit 0
