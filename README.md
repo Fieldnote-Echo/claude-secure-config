@@ -8,12 +8,12 @@ AI-generated code produces [1.7x more issues per PR](https://www.coderabbit.ai/b
 
 | File | Purpose |
 |------|---------|
-| `rules/security.md` | Input validation, access control, injection, XSS, SSRF, secrets, auth, async safety, CORS, headers, supply chain, crypto, logging |
+| `rules/security.md` | Input validation, access control, injection, XSS, SSRF, secrets, auth, async safety, CORS, headers, supply chain, MCP/tool security, AI tooling safety, crypto, logging |
 | `rules/git-conventions.md` | Commit format, branch naming, safety rules for destructive operations |
 | `rules/code-hygiene.md` | Type safety, error handling, search-before-create, verify-before-use, debt management, AI-specific discipline |
 | `hooks.md` | Hook patterns, template `settings.json`, exit code reference |
 
-Informed by [OWASP Top 10:2025](https://owasp.org/Top10/2025/), [CWE Top 25 2024](https://cwe.mitre.org/top25/archive/2024/2024_cwe_top25.html), and the [OpenSSF AI Code Assistant Guide](https://best.openssf.org/Security-Focused-Guide-for-AI-Code-Assistant-Instructions.html).
+Informed by [OWASP Top 10:2025](https://owasp.org/Top10/2025/), [OWASP Agentic Top 10](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/), [CWE Top 25 2024](https://cwe.mitre.org/top25/archive/2024/2024_cwe_top25.html), the [OpenSSF AI Code Assistant Guide](https://best.openssf.org/Security-Focused-Guide-for-AI-Code-Assistant-Instructions.html), and the [IDEsaster](https://thehackernews.com/2025/12/researchers-uncover-30-flaws-in-ai.html) / [MCP CVE disclosures](https://www.heyuan110.com/posts/ai/2026-03-10-mcp-security-2026/) (Q1 2026).
 
 ## Installation
 
