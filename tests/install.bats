@@ -53,13 +53,26 @@ teardown() {
 
 @test "install is idempotent" {
   create_git_target
-  run bash "$SETUP_SH" "$TEST_TEMP_DIR"
-  assert_success
-  local count1
-  count1="$(count_installed_rules)"
+  if [ "${COPY_MODE_ONLY:-}" = "true" ]; then
+    # Copy mode: re-install with --copy --force (copies are regular files,
+    # conflict detection fires without --force)
+    run bash "$SETUP_SH" "$TEST_TEMP_DIR" --copy
+    assert_success
+    local count1
+    count1="$(count_installed_rules)"
 
-  run bash "$SETUP_SH" "$TEST_TEMP_DIR"
-  assert_success
+    run bash "$SETUP_SH" "$TEST_TEMP_DIR" --copy --force
+    assert_success
+  else
+    # Symlink mode: ln -sf overwrites existing symlinks cleanly
+    run bash "$SETUP_SH" "$TEST_TEMP_DIR"
+    assert_success
+    local count1
+    count1="$(count_installed_rules)"
+
+    run bash "$SETUP_SH" "$TEST_TEMP_DIR"
+    assert_success
+  fi
   local count2
   count2="$(count_installed_rules)"
 
