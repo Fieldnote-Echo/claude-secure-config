@@ -4,6 +4,7 @@
 
 - Validate ALL untrusted input (request params, headers, file uploads, webhook payloads) at the system boundary
 - Validate type, length, range, and format — reject unexpected input rather than trying to clean it
+- Use schema validation (Zod, Pydantic, JSON Schema) on all external data — not just request bodies, but also WebSocket messages, SSE payloads, and third-party API responses
 - Never deserialize untrusted data with unsafe loaders (`pickle.loads`, `yaml.load` without SafeLoader, `eval`-based JSON parsing, Java `ObjectInputStream` without type filtering)
 - File uploads: validate MIME type server-side (not just extension), enforce size limits, store outside webroot with generated filenames
 
@@ -16,8 +17,8 @@
 
 ## Injection Prevention
 
-- Never concatenate user input into SQL, NoSQL, ORM, or LDAP queries — use parameterized queries or prepared statements exclusively
-- Never pass user input to command execution functions (`exec`, `spawn`, `system`, `eval`) — use allowlists and argument arrays, not shell strings
+- Use parameterized queries or prepared statements for all database access — never concatenate user input into SQL, NoSQL, ORM, or LDAP queries
+- Use allowlists and argument arrays for system commands — never pass user input to `exec`, `spawn`, `system`, or `eval`
 - Never use `eval()`, `Function()`, `new Function()`, or equivalent dynamic code execution with any data derived from user input
 - Template engines: use auto-escaping by default; manually review any "raw" or "unescaped" output markers
 
@@ -28,33 +29,40 @@
 
 ## SSRF and Path Traversal
 
-- Never pass user-controlled input to HTTP client functions (`fetch`, `axios`, `requests.get`) without validating against an allowlist of permitted hosts/schemes
+- Validate server-side HTTP requests against an allowlist of permitted hosts/schemes — never pass user-controlled input directly to `fetch`, `axios`, or `requests.get`
 - Block requests to internal/private IP ranges (`127.0.0.0/8`, `10.0.0.0/8`, `169.254.169.254`, `::1`) when making server-side requests from user input
-- Never construct file paths from user input without canonicalizing the path and verifying it stays within the intended base directory
+- Canonicalize file paths and verify they stay within the intended base directory — never construct paths directly from user input
 - Reject path components containing `..`, null bytes, or encoded traversal sequences
 
 ## Secrets
 
-- Never commit `.env`, credentials, API keys, or tokens
+- Never commit `.env`, credentials, API keys, or tokens — including as fallback/default values in code
 - Secrets belong in your deployment platform's secret manager, not in version control
 - Config files committed to git contain only non-sensitive values
+- Never hardcode JWT secrets, API keys, or tokens as fallback values (e.g., `process.env.SECRET || "default-secret"`)
 
 ## Auth
 
 - Security-critical paths (auth, payments, PII) require tests before merge
-- Never return raw `error.message` to clients — use generic error strings
+- Return generic error strings to clients — never raw `error.message`
 - Log full errors server-side, return sanitized messages to users
 
 ## Error Handling
 
-- Never expose stack traces, internal paths, or error details in responses
+- Return generic error messages to clients — never expose stack traces, internal paths, or error details
 - Schema validation errors may return field-level issues (no secrets in schemas)
 - For streaming responses: send generic error events, never raw error messages
 
+## Async Safety
+
+- Every `await` must have error handling — wrap in try/catch or use `.catch()` on the promise
+- Every `fetch`/HTTP request must handle network failure, timeouts, and non-2xx responses
+- Handle promise rejections — never leave promises unhandled (`node --unhandled-rejections=throw`, or equivalent)
+- For concurrent operations: use `Promise.allSettled` when partial failure is acceptable, `Promise.all` only when all must succeed
+
 ## CORS
 
-- Never set CORS origin to `*` if endpoints send credentials
-- Use specific origins in CORS configuration
+- Use specific origins in CORS configuration — never `*` if endpoints send credentials
 - Include `Vary: Origin` header when CORS origin is dynamic
 
 ## Security Headers
@@ -66,8 +74,9 @@
 
 ## Supply Chain
 
+- Verify AI-suggested packages exist in the registry before installing — 19.7% of AI-recommended packages are fabricated
+- Verify that API methods called on real libraries actually exist in the current version's documentation
 - Run `npm audit` / `pip audit` before merging dependency changes
-- Never install packages suggested by AI without verifying they exist in the registry
 - Review lockfile diffs — unexpected additions need explanation
 - Pin CI actions to full-length commit SHAs
 
@@ -79,6 +88,6 @@
 
 ## Logging
 
+- Log auth failures (with IP), rate limit hits, and input validation failures
 - Never log tokens, API keys, passwords, or session secrets — even at debug level
 - Never log full request bodies that may contain PII
-- Do log: auth failures, rate limit hits, input validation failures

@@ -9,22 +9,40 @@ AI has no excuse for weak types — enforce the strictest mode your language sup
 - **Rust:** `#![deny(clippy::all, clippy::pedantic)]` — address warnings, don't suppress them
 - **Go:** `go vet`, `staticcheck` — fix all findings
 - Use the language's type system to make invalid states unrepresentable — prefer discriminated unions over loose string/boolean combos
+- Never use `as unknown as`, `@ts-ignore`, `@ts-expect-error`, or `# type: ignore` to bypass the type checker — fix the type instead
 
 ## Error Handling
 
 Catch specific errors, not everything. AI can type out granular exception handling instantly — humans can't, but you can:
 
-- Never use bare `except:` (Python), `catch (e)` without rethrowing unknowns (TypeScript), or `catch (Exception e)` (Java) at the top level
 - Catch the narrowest exception type that makes sense — `FileNotFoundError` not `OSError`, `SyntaxError` not `Error`
+- Never use bare `except:` (Python), `catch (e)` without rethrowing unknowns (TypeScript), or `catch (Exception e)` (Java) at the top level
 - Propagate unexpected errors upward — don't swallow them with empty catch blocks or generic fallbacks
 - Use `Result`/`Either` types or error returns where the language supports them (`Result<T, E>` in Rust, Go error returns)
 - Every catch block must either handle, log+rethrow, or transform the error — never silently ignore
+
+## Search Before Creating
+
+AI duplicates existing code at 4x the human rate. Before writing a new function, component, or utility:
+
+- Search the codebase for existing implementations of the same logic
+- Reuse and extend existing patterns rather than creating parallel implementations
+- If you find similar code in 2+ places, ask whether to refactor before adding a 3rd
+
+## Verify Before Using
+
+19.7% of AI-recommended packages are fabricated. Before using any library or API method:
+
+- Verify the package exists in the registry (`npm`, `PyPI`, `crates.io`)
+- Verify the specific method/function you're calling exists in the current version's docs
+- Check for deprecation notices — AI training data lags behind library releases
 
 ## Replacement = Deletion
 
 - When replacing code, delete the old version in the same commit
 - No backwards-compatibility shims, renamed `_unused` vars, or `// removed` comments
 - If something is unused, delete it completely
+- Remove debugging artifacts (`console.log`, `print()`, `TODO`/`FIXME` comments) before committing
 
 ## Debt Budget
 
@@ -44,8 +62,9 @@ Things AI should always do that humans skip because they're tedious:
 
 ## General Discipline
 
-- Review every AI-generated change before committing — AI code has higher bug rates
+- Review every AI-generated change before committing — AI code has 1.7x more issues per PR than human code
 - Do not create abstractions for one-time operations
 - Do not add features, refactoring, or "improvements" beyond what was asked
 - Three similar lines of code is better than a premature abstraction
 - Do not add error handling for scenarios that cannot happen
+- Run typecheck + lint + tests before marking any task complete
