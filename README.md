@@ -10,6 +10,8 @@ AI-generated code produces [1.7x more issues per PR](https://www.coderabbit.ai/b
 |------|-------|---------|
 | `rules/security.md` | ~110 | Input validation, access control, injection, XSS, SSRF, secrets, error handling, async safety, CORS, headers, supply chain, MCP/tool security, AI tooling safety, crypto, logging |
 | `rules/code-hygiene.md` | ~55 | Type safety, error handling, search-before-create, verification, replacement=deletion, debt budget, AI discipline |
+| `rules/deliberation.md` | ~35 | When to pause vs act, progressive trust, pushing back |
+| `rules/cognitive-scaffold.md` | ~40 | Reasoning/inference partnership, friction worth keeping, anti-sycophancy |
 | `rules/git-conventions.md` | ~12 | Git safety, destructive operation protocol |
 | `rules/commit-preferences.md` | ~30 | AI attribution (trailers not co-authorship), commit message format |
 | `hooks.md` | ~105 | Hook patterns, template `settings.json`, exit code reference |
