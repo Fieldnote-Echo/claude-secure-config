@@ -6,13 +6,15 @@ Use git trailers that describe tool usage, not authorship. AI is a tool, not a c
 
 ```
 Coding-Agent: claude-code
-Model: claude-opus-4-6-20260312
+Model: claude-opus-4-6
 ```
 
 Do NOT use `Co-Authored-By` for AI tools. It implies shared authorship, which:
 - Assigns agency where there is none — the developer is responsible for what the tool produces
-- May call IP ownership into question — courts require human authorship for copyright
+- May call IP ownership into question — current US case law generally requires human authorship for copyright (this is not legal advice; the landscape is actively being litigated)
 - Conflates a tool with a collaborator — `Co-Authored-By` was designed for humans exchanging drafts
+
+**Note:** Claude Code adds `Co-Authored-By` by default. To override, add a PostToolUse hook that strips it, or configure your commit workflow to use trailers instead. See `hooks.md`.
 
 Alternative trailers (pick what fits your team):
 

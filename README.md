@@ -2,7 +2,7 @@
 
 Shared security and convention rules for [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) projects.
 
-AI-generated code produces [1.7x more issues per PR](https://www.coderabbit.ai/blog/state-of-ai-vs-human-code-generation-report) than human code, [87% of AI PRs contain security vulnerabilities](https://www.helpnetsecurity.com/2026/03/13/claude-code-openai-codex-google-gemini-ai-coding-agent-security/), and [only 10% of developers scan AI code](https://www.cybersecuritydive.com/news/security-issues-ai-generated-code-snyk/705926/). These rules give Claude guardrails where it matters most.
+AI-generated code produces [1.7x more issues per PR](https://www.coderabbit.ai/blog/state-of-ai-vs-human-code-generation-report) than human code (CodeRabbit, 470 PRs). In a [DryRun Security study](https://www.helpnetsecurity.com/2026/03/13/claude-code-openai-codex-google-gemini-ai-coding-agent-security/) of 30 AI-generated PRs, 87% contained security vulnerabilities. The [Snyk 2026 Developer Security Report](https://www.cybersecuritydive.com/news/security-issues-ai-generated-code-snyk/705926/) found most developers don't scan AI-generated code for vulnerabilities. These rules give Claude guardrails where it matters most.
 
 ## What's included
 
@@ -97,6 +97,8 @@ For org-specific or sensitive rules you don't want public:
 
 Claude Code reads from the filesystem, not from git — gitignored files still load. Your internal rules stay private even if your fork is public.
 
+**Caveat:** `.gitignore` is not a security boundary. A `git add -f` or a GUI client can still stage ignored files. For truly sensitive rules, store them outside the repo (e.g., `~/.claude/rules/`) and use `@import` to reference them.
+
 ## Compaction survival
 
 Add this to your project's `CLAUDE.md` to prevent context loss in long sessions:
@@ -114,7 +116,7 @@ These rules are intentionally generic. For project-specific rules:
 1. Keep shared rules in `.claude/rules/org/` (from this repo)
 2. Add project-specific rules as `.claude/rules/your-framework.md`
 3. Put the most critical 3-5 rules in `.claude/CLAUDE.md` for primacy bias (top of file = highest attention)
-4. Keep your total rules under 200 lines — every token competes for attention
+4. Keep your project-specific `CLAUDE.md` under 200 lines — shared org rules load separately and Claude handles the layering
 
 ## Contributing
 

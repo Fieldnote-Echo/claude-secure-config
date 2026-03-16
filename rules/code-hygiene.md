@@ -23,7 +23,7 @@ Catch specific errors, not everything. AI can type out granular exception handli
 
 ## Search Before Creating
 
-AI duplicates existing code at 4x the human rate. Before writing a new function, component, or utility:
+AI frequently duplicates existing code rather than reusing what's already there. Before writing a new function, component, or utility:
 
 - Search the codebase for existing implementations of the same logic
 - Reuse and extend existing patterns rather than creating parallel implementations

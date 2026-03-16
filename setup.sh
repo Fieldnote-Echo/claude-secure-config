@@ -9,7 +9,7 @@ set -euo pipefail
 #   bash setup.sh /path/to/target-repo
 #   bash setup.sh /path/to/target-repo --copy  # copy instead of symlink
 #
-# Requires: this repo cloned locally.
+# Requires: bash. Symlink mode requires a Unix-like OS (macOS, Linux, WSL).
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 RULES_DIR="$SCRIPT_DIR/rules"
@@ -19,16 +19,25 @@ if [ -z "${1:-}" ]; then
   echo "Usage: bash setup.sh /path/to/target-repo [--copy]"
   echo ""
   echo "Options:"
-  echo "  --copy    Copy files instead of symlinking (for repos that can't follow symlinks)"
+  echo "  --copy    Copy files instead of symlinking (required on Windows without WSL)"
   exit 1
 fi
 
 TARGET="$1"
-MODE="${2:-symlink}"
+MODE="${2:-}"
+
+if [ -n "$MODE" ] && [ "$MODE" != "--copy" ]; then
+  echo "Error: Unknown option '$MODE'. Use --copy or omit for symlink mode."
+  exit 1
+fi
 
 if [ ! -d "$TARGET" ]; then
   echo "Error: $TARGET is not a directory"
   exit 1
+fi
+
+if [ ! -d "$TARGET/.git" ]; then
+  echo "Warning: $TARGET does not appear to be a git repository" >&2
 fi
 
 DEST="$TARGET/.claude/rules/org"
