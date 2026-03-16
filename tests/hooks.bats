@@ -85,6 +85,23 @@ teardown() {
   assert [ "$status" -eq 2 ]
 }
 
+@test "chmod +s is blocked (H4 regression)" {
+  run run_pretooluse_hook '{"command": "chmod +s /tmp/exploit"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
+@test "chmod 755 is allowed (H4 false positive regression)" {
+  run run_pretooluse_hook '{"command": "chmod 755 script.sh"}'
+  assert_success
+}
+
+@test "git am --no-verify is blocked (H5 regression)" {
+  run run_pretooluse_hook '{"command": "git am --no-verify patch.mbox"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
 @test "hooks.md template command blocks rm -rf (docs wiring smoke test)" {
   # Extract the literal PreToolUse command from hooks.md and verify it works
   local hooks_md

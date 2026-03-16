@@ -38,7 +38,7 @@ run_pretooluse_hook() {
     fi
 
     # --no-verify on git commands only
-    if printf "%s" "$CMD" | grep -qE "git[ ]+(commit|merge|push|rebase|cherry-pick)[ ]+.*--no-verify"; then
+    if printf "%s" "$CMD" | grep -qE "git[ ]+(commit|merge|push|rebase|cherry-pick|am)[ ]+.*--no-verify"; then
       echo "BLOCKED: Never skip pre-commit hooks." >&2; exit 2
     fi
 
@@ -60,8 +60,8 @@ run_pretooluse_hook() {
       echo "BLOCKED: Direct access to .env or secrets/." >&2; exit 2
     fi
 
-    # chmod 777/000
-    if printf "%s" "$CMD" | grep -qE "chmod[ ]+(-R[ ]+)?(777|000)[ ]"; then
+    # chmod 777/000/+s
+    if printf "%s" "$CMD" | grep -qE "((/usr/bin/|/bin/)?chmod)[ ]+(-R[ ]+)?(777|000)[ ]|((/usr/bin/|/bin/)?chmod)[ ]+.*[+]s"; then
       echo "BLOCKED: Dangerous permission change." >&2; exit 2
     fi
 
