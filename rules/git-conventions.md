@@ -1,11 +1,5 @@
 # Git Conventions
 
-## Commits
-
-- Format: `<type>: <description>`
-- Types: feat, fix, refactor, test, chore, docs
-- Keep descriptions concise and imperative ("add auth check", not "added auth check")
-
 ## Branches
 
 - Format: `<type>/<slug>`
