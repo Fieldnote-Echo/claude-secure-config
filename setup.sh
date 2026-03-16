@@ -7,68 +7,416 @@ set -euo pipefail
 #
 # Usage:
 #   bash setup.sh /path/to/target-repo
-#   bash setup.sh /path/to/target-repo --copy  # copy instead of symlink
+#   bash setup.sh /path/to/target-repo --copy       # copy instead of symlink
+#   bash setup.sh /path/to/target-repo --uninstall   # remove installed rules
+#   bash setup.sh /path/to/target-repo --status       # show what's installed
+#   bash setup.sh /path/to/target-repo --dry-run      # preview without changes
+#   bash setup.sh /path/to/target-repo --copy --dry-run
 #
-# Requires: bash. Symlink mode requires a Unix-like OS (macOS, Linux, WSL).
+# Requires: bash 4+. Symlink mode requires a Unix-like OS (macOS, Linux, WSL).
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-RULES_DIR="$SCRIPT_DIR/rules"
-INTERNAL_DIR="$SCRIPT_DIR/internal"
+readonly VERSION="1.0.0"
+readonly MARKER=".claude-secure-config"
 
-if [ -z "${1:-}" ]; then
-  echo "Usage: bash setup.sh /path/to/target-repo [--copy]"
-  echo ""
-  echo "Options:"
-  echo "  --copy    Copy files instead of symlinking (required on Windows without WSL)"
+# --- Resolve script directory (follows symlinks to real location) ---
+
+resolve_script_dir() {
+  local source="$0"
+  # Follow symlinks until we reach the actual file
+  while [ -L "$source" ]; do
+    local dir
+    dir="$(cd -P "$(dirname "$source")" && pwd)"
+    source="$(readlink "$source")"
+    # Handle relative symlink (resolve relative to the symlink's directory)
+    [[ "$source" != /* ]] && source="$dir/$source"
+  done
+  cd -P "$(dirname "$source")" && pwd
+}
+
+SCRIPT_DIR="$(resolve_script_dir)"
+readonly SCRIPT_DIR
+readonly RULES_DIR="$SCRIPT_DIR/rules"
+readonly INTERNAL_DIR="$SCRIPT_DIR/internal"
+
+# --- Helpers ---
+
+die() {
+  echo "Error: $*" >&2
   exit 1
+}
+
+warn() {
+  echo "Warning: $*" >&2
+}
+
+# Canonicalize a path (resolve symlinks, .., spaces). Works on macOS and Linux.
+# Falls back to cd+pwd if realpath is unavailable.
+canonicalize() {
+  local path="$1"
+  if command -v realpath >/dev/null 2>&1; then
+    realpath "$path"
+  elif command -v readlink >/dev/null 2>&1 && readlink -f "$path" >/dev/null 2>&1; then
+    readlink -f "$path"
+  else
+    # Fallback: only works for directories
+    (cd "$path" && pwd -P)
+  fi
+}
+
+# Count .md files in a directory (without ls or glob expansion in an if-test)
+count_md_files() {
+  local dir="$1"
+  local count=0
+  for f in "$dir"/*.md; do
+    [ -f "$f" ] && count=$((count + 1))
+  done
+  echo "$count"
+}
+
+# --- Usage ---
+
+usage() {
+  cat <<'USAGE'
+Usage: bash setup.sh /path/to/target-repo [OPTIONS]
+
+Install shared Claude Code rules into a target repository.
+
+Options:
+  --copy        Copy files instead of symlinking (required on Windows without WSL)
+  --uninstall   Remove all rules installed by this tool
+  --status      Show what's currently installed
+  --dry-run     Preview what would happen without making changes
+  --force       Overwrite non-symlink files in org/ without prompting
+  --version     Show version
+  --help        Show this help
+
+Examples:
+  bash setup.sh ~/projects/my-app              # symlink rules
+  bash setup.sh ~/projects/my-app --copy       # copy instead
+  bash setup.sh ~/projects/my-app --dry-run    # preview
+  bash setup.sh ~/projects/my-app --uninstall  # clean up
+USAGE
+  exit 0
+}
+
+# --- Argument parsing ---
+
+TARGET=""
+MODE=""
+ACTION="install"
+DRY_RUN=false
+FORCE=false
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --copy)      MODE="--copy"; shift ;;
+    --uninstall) ACTION="uninstall"; shift ;;
+    --status)    ACTION="status"; shift ;;
+    --dry-run)   DRY_RUN=true; shift ;;
+    --force)     FORCE=true; shift ;;
+    --version)   echo "claude-secure-config $VERSION"; exit 0 ;;
+    --help|-h)   usage ;;
+    -*)          die "Unknown option '$1'. See --help." ;;
+    *)
+      if [ -z "$TARGET" ]; then
+        TARGET="$1"
+      else
+        die "Unexpected argument '$1'. Only one target directory allowed."
+      fi
+      shift
+      ;;
+  esac
+done
+
+if [ -z "$TARGET" ]; then
+  usage
 fi
 
-TARGET="$1"
-MODE="${2:-}"
+# --- Validate target ---
 
-if [ -n "$MODE" ] && [ "$MODE" != "--copy" ]; then
-  echo "Error: Unknown option '$MODE'. Use --copy or omit for symlink mode."
-  exit 1
+if [ ! -e "$TARGET" ]; then
+  die "'$TARGET' does not exist."
 fi
 
 if [ ! -d "$TARGET" ]; then
-  echo "Error: $TARGET is not a directory"
-  exit 1
+  die "'$TARGET' is not a directory."
 fi
 
-if [ ! -d "$TARGET/.git" ]; then
-  echo "Warning: $TARGET does not appear to be a git repository" >&2
+# Canonicalize target to handle spaces, relative paths, trailing slashes
+TARGET="$(canonicalize "$TARGET")"
+readonly TARGET
+
+if [ ! -d "$TARGET/.git" ] && [ ! -f "$TARGET/.git" ]; then
+  warn "'$TARGET' does not appear to be a git repository."
 fi
 
-DEST="$TARGET/.claude/rules/org"
-mkdir -p "$DEST"
+readonly DEST="$TARGET/.claude/rules/org"
 
-install_rules() {
-  local src_dir="$1"
-  local label="$2"
+# --- Status command ---
 
-  for rule in "$src_dir"/*.md; do
-    [ -f "$rule" ] || continue
-    filename="$(basename "$rule")"
-    if [ "$MODE" = "--copy" ]; then
-      cp "$rule" "$DEST/$filename"
-      echo "  Copied $filename ($label)"
-    else
-      ln -sf "$rule" "$DEST/$filename"
-      echo "  Linked $filename ($label)"
+do_status() {
+  if [ ! -d "$DEST" ]; then
+    echo "Not installed: $DEST does not exist."
+    return
+  fi
+
+  local marker_file="$DEST/$MARKER"
+  if [ -f "$marker_file" ]; then
+    echo "Installed (managed by claude-secure-config):"
+    echo "  Marker:  $marker_file"
+    echo "  Source:  $(sed -n '2p' "$marker_file" 2>/dev/null || echo 'unknown')"
+    echo "  Date:    $(sed -n '3p' "$marker_file" 2>/dev/null || echo 'unknown')"
+    echo "  Version: $(sed -n '4p' "$marker_file" 2>/dev/null || echo 'unknown')"
+    echo ""
+  else
+    echo "Directory exists but is NOT managed by claude-secure-config."
+    echo "  Path: $DEST"
+    echo ""
+  fi
+
+  echo "Contents:"
+  local found=false
+  for f in "$DEST"/*; do
+    [ -e "$f" ] || continue
+    found=true
+    local name
+    name="$(basename "$f")"
+    if [ -L "$f" ]; then
+      local link_target
+      link_target="$(readlink "$f")"
+      if [ -e "$f" ]; then
+        echo "  $name -> $link_target"
+      else
+        echo "  $name -> $link_target  [BROKEN]"
+      fi
+    elif [ -f "$f" ]; then
+      echo "  $name (file)"
     fi
   done
+  if [ "$found" = false ]; then
+    echo "  (empty)"
+  fi
 }
 
-echo "Installing shared rules..."
-install_rules "$RULES_DIR" "shared"
+# --- Uninstall command ---
 
-if [ -d "$INTERNAL_DIR" ] && ls "$INTERNAL_DIR"/*.md &>/dev/null; then
+do_uninstall() {
+  if [ ! -d "$DEST" ]; then
+    echo "Nothing to uninstall: $DEST does not exist."
+    return
+  fi
+
+  local marker_file="$DEST/$MARKER"
+  if [ ! -f "$marker_file" ] && [ "$FORCE" = false ]; then
+    die "$DEST exists but was not installed by claude-secure-config (no $MARKER file). Use --force to remove anyway."
+  fi
+
+  echo "Uninstalling rules from $DEST ..."
+  local removed=0
+  for f in "$DEST"/*.md; do
+    [ -e "$f" ] || [ -L "$f" ] || continue
+    local name
+    name="$(basename "$f")"
+    if [ "$DRY_RUN" = true ]; then
+      echo "  Would remove $name"
+    else
+      rm -f "$f"
+      echo "  Removed $name"
+    fi
+    removed=$((removed + 1))
+  done
+
+  # Remove the marker file
+  if [ -f "$marker_file" ]; then
+    if [ "$DRY_RUN" = true ]; then
+      echo "  Would remove $MARKER"
+    else
+      rm -f "$marker_file"
+      echo "  Removed $MARKER"
+    fi
+  fi
+
+  # Remove org/ directory if empty
+  if [ "$DRY_RUN" = false ] && [ -d "$DEST" ]; then
+    if [ -z "$(ls -A "$DEST" 2>/dev/null)" ]; then
+      rmdir "$DEST"
+      echo "  Removed empty directory $DEST"
+    fi
+  fi
+
+  if [ "$DRY_RUN" = true ]; then
+    echo ""
+    echo "(dry run -- no changes made)"
+  else
+    echo ""
+    echo "Done. Removed $removed rule(s)."
+  fi
+}
+
+# --- Install command ---
+
+do_install() {
+  # Validate source rules exist
+  if [ ! -d "$RULES_DIR" ]; then
+    die "Rules directory not found at '$RULES_DIR'. Is this repo intact?"
+  fi
+
+  local shared_count
+  shared_count="$(count_md_files "$RULES_DIR")"
+  if [ "$shared_count" -eq 0 ]; then
+    die "No .md files found in '$RULES_DIR'. Nothing to install."
+  fi
+
+  # Check for non-managed files in destination that would be overwritten
+  if [ -d "$DEST" ] && [ "$FORCE" = false ]; then
+    local conflicts=""
+    for rule in "$RULES_DIR"/*.md; do
+      [ -f "$rule" ] || continue
+      local name
+      name="$(basename "$rule")"
+      local dest_file="$DEST/$name"
+      if [ -e "$dest_file" ] && [ ! -L "$dest_file" ]; then
+        conflicts="${conflicts}  $name\n"
+      fi
+    done
+    if [ -d "$INTERNAL_DIR" ]; then
+      for rule in "$INTERNAL_DIR"/*.md; do
+        [ -f "$rule" ] || continue
+        local name
+        name="$(basename "$rule")"
+        local dest_file="$DEST/$name"
+        if [ -e "$dest_file" ] && [ ! -L "$dest_file" ]; then
+          conflicts="${conflicts}  $name\n"
+        fi
+      done
+    fi
+    if [ -n "$conflicts" ]; then
+      echo "Warning: The following files in $DEST are regular files (not symlinks)" >&2
+      echo "and would be overwritten:" >&2
+      printf "%b" "$conflicts" >&2
+      die "Use --force to overwrite, or back them up first."
+    fi
+  fi
+
+  # Create destination
+  if [ "$DRY_RUN" = true ]; then
+    echo "[dry run] Would create $DEST"
+  else
+    if ! mkdir -p "$DEST" 2>/dev/null; then
+      die "Failed to create directory '$DEST'. Check permissions."
+    fi
+  fi
+
+  local installed=0
+
+  install_rules() {
+    local src_dir="$1"
+    local label="$2"
+
+    for rule in "$src_dir"/*.md; do
+      [ -f "$rule" ] || continue
+      local filename
+      filename="$(basename "$rule")"
+      local dest_file="$DEST/$filename"
+
+      if [ "$DRY_RUN" = true ]; then
+        if [ "$MODE" = "--copy" ]; then
+          echo "  Would copy $filename ($label)"
+        else
+          echo "  Would link $filename ($label)"
+        fi
+      elif [ "$MODE" = "--copy" ]; then
+        if ! cp "$rule" "$dest_file"; then
+          die "Failed to copy '$rule' to '$dest_file'."
+        fi
+        echo "  Copied $filename ($label)"
+      else
+        if ! ln -sf "$rule" "$dest_file"; then
+          die "Failed to create symlink '$dest_file' -> '$rule'."
+        fi
+        echo "  Linked $filename ($label)"
+      fi
+      installed=$((installed + 1))
+    done
+  }
+
+  echo "Installing shared rules..."
+  install_rules "$RULES_DIR" "shared"
+
+  # Install internal rules if present and non-empty
+  if [ -d "$INTERNAL_DIR" ]; then
+    local internal_count
+    internal_count="$(count_md_files "$INTERNAL_DIR")"
+    if [ "$internal_count" -gt 0 ]; then
+      echo ""
+      echo "Installing internal rules..."
+      install_rules "$INTERNAL_DIR" "internal"
+    fi
+  fi
+
+  if [ "$installed" -eq 0 ]; then
+    warn "No rule files were installed."
+    return
+  fi
+
+  # Write marker file for provenance tracking
+  if [ "$DRY_RUN" = false ]; then
+    cat > "$DEST/$MARKER" <<EOF
+# Managed by claude-secure-config. Do not edit.
+$SCRIPT_DIR
+$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+$VERSION
+$MODE
+EOF
+  fi
+
+  # Detect and report orphaned files (installed previously but no longer in source)
+  if [ -d "$DEST" ] && [ "$DRY_RUN" = false ]; then
+    local orphans=""
+    for existing in "$DEST"/*.md; do
+      [ -e "$existing" ] || [ -L "$existing" ] || continue
+      local name
+      name="$(basename "$existing")"
+      # Check if this file came from our source dirs
+      if [ ! -f "$RULES_DIR/$name" ] && [ ! -f "$INTERNAL_DIR/$name" ] 2>/dev/null; then
+        orphans="${orphans}  $name"
+        # Report broken symlinks distinctly
+        if [ -L "$existing" ] && [ ! -e "$existing" ]; then
+          orphans="${orphans}  [BROKEN SYMLINK]"
+        fi
+        orphans="${orphans}\n"
+      fi
+    done
+    if [ -n "$orphans" ]; then
+      echo ""
+      warn "Orphaned files in $DEST (not in current source):"
+      printf "%b" "$orphans" >&2
+      echo "  Remove manually or run with --uninstall to clean up." >&2
+    fi
+  fi
+
   echo ""
-  echo "Installing internal rules..."
-  install_rules "$INTERNAL_DIR" "internal"
-fi
+  if [ "$DRY_RUN" = true ]; then
+    echo "(dry run -- no changes made)"
+  else
+    echo "Done. $installed rule(s) installed to $DEST"
+    if [ "$MODE" != "--copy" ]; then
+      # Check if .gitignore already has the entry
+      local gitignore="$TARGET/.gitignore"
+      if [ -f "$gitignore" ] && grep -q "^\.claude/rules/org/" "$gitignore" 2>/dev/null; then
+        : # already in .gitignore
+      else
+        echo "Reminder: Add .claude/rules/org/ to .gitignore (symlinks shouldn't be committed)."
+      fi
+    fi
+  fi
+}
 
-echo ""
-echo "Done. Rules installed at $DEST"
-echo "Add .claude/rules/org/ to .gitignore if using symlinks."
+# --- Dispatch ---
+
+case "$ACTION" in
+  install)   do_install ;;
+  uninstall) do_uninstall ;;
+  status)    do_status ;;
+  *)         die "Unknown action: $ACTION" ;;
+esac
