@@ -14,7 +14,7 @@ Do NOT use `Co-Authored-By` for AI tools. It implies shared authorship, which:
 - May call IP ownership into question — current US case law generally requires human authorship for copyright (this is not legal advice; the landscape is actively being litigated)
 - Conflates a tool with a collaborator — `Co-Authored-By` was designed for humans exchanging drafts
 
-**Note:** Claude Code adds `Co-Authored-By` by default. To override, add a PostToolUse hook that strips it, or configure your commit workflow to use trailers instead. See `hooks.md`.
+**Note:** Claude Code adds `Co-Authored-By` by default. To override, add a PostToolUse hook that strips it, or configure your commit workflow to use trailers instead.
 
 Alternative trailers (pick what fits your team):
 
@@ -24,33 +24,6 @@ Alternative trailers (pick what fits your team):
 | `Model: claude-opus-4-6` | Identifies the specific model |
 | `AI-assisted: syntax, type search, text generation` | Describes what the AI contributed |
 | `Helped-by: claude-code` | Git's existing trailer for tool/person assistance |
-
-## Architecture Decision Records
-
-Log decisions before implementing them. Use `docs/adr/` or `docs/decisions/`:
-
-- One ADR per decision — don't combine multiple choices in one document
-- File format: `NNNN-short-description.md` (e.g., `0001-use-postgres-over-sqlite.md`)
-- Keep them close to the code (same repo, version controlled)
-- Status lifecycle: `proposed` → `accepted` → `superseded` or `deprecated`
-
-Minimum template:
-
-```markdown
-# NNNN: Title
-
-**Status:** accepted
-**Date:** YYYY-MM-DD
-
-## Context
-What is the issue or constraint that motivates this decision?
-
-## Decision
-What is the change we are making?
-
-## Consequences
-What becomes easier? What becomes harder?
-```
 
 ## Commit Messages
 

@@ -14,6 +14,8 @@
 - Default deny: if no rule explicitly grants access, deny it
 - Access control checks happen server-side — never rely on client-side hiding or routing
 - For endpoints taking a resource ID: verify the requesting user owns or has permission to that resource (IDOR prevention)
+- Security-critical paths (auth, payments, PII) require tests before merge
+- Generated code for services should use minimal privileges — non-root users in containers, scoped tokens over admin tokens, restrictive file permissions
 
 ## Injection Prevention
 
@@ -38,18 +40,12 @@
 
 - Never commit `.env`, credentials, API keys, or tokens — including as fallback/default values in code
 - Secrets belong in your deployment platform's secret manager, not in version control
-- Config files committed to git contain only non-sensitive values
 - Never hardcode JWT secrets, API keys, or tokens as fallback values (e.g., `process.env.SECRET || "default-secret"`)
-
-## Auth
-
-- Security-critical paths (auth, payments, PII) require tests before merge
-- Return generic error strings to clients — never raw `error.message`
-- Log full errors server-side, return sanitized messages to users
 
 ## Error Handling
 
 - Return generic error messages to clients — never expose stack traces, internal paths, or error details
+- Log full errors server-side, return sanitized messages to users
 - Schema validation errors may return field-level issues (no secrets in schemas)
 - For streaming responses: send generic error events, never raw error messages
 
@@ -57,7 +53,7 @@
 
 - Every `await` must have error handling — wrap in try/catch or use `.catch()` on the promise
 - Every `fetch`/HTTP request must handle network failure, timeouts, and non-2xx responses
-- Handle promise rejections — never leave promises unhandled (`node --unhandled-rejections=throw`, or equivalent)
+- Handle promise rejections explicitly — attach `.catch()` or use try/catch with await. Never fire-and-forget a promise.
 - For concurrent operations: use `Promise.allSettled` when partial failure is acceptable, `Promise.all` only when all must succeed
 
 ## CORS
@@ -74,13 +70,15 @@
 
 ## Supply Chain
 
-- Verify AI-suggested packages exist in the registry before installing — 19.7% of AI-recommended packages are fabricated ([slopsquatting](https://www.securityweek.com/ai-hallucinations-create-a-new-software-supply-chain-threat/))
-- Verify the package has meaningful download counts and a real maintainer — attackers register packages that AI commonly hallucinates
-- Verify that API methods called on real libraries actually exist in the current version's documentation
+- Verify AI-suggested packages exist in the registry before installing — [19.7% are fabricated](https://www.securityweek.com/ai-hallucinations-create-a-new-software-supply-chain-threat/) (slopsquatting)
+- Verify the package has meaningful download counts and a real maintainer
+- Verify that API methods called on real libraries actually exist in the current version's docs — check for deprecation notices
+- Flag GPL, AGPL, SSPL, and EUPL dependencies for review before adding — AI suggests copyleft-licensed packages without flagging license obligations
+- Commit lockfiles to version control. CI must use frozen-lockfile installs (`npm ci`, `pip install --require-hashes`)
 - Run `npm audit` / `pip audit` before merging dependency changes
 - Review lockfile diffs — unexpected additions need explanation
 - Pin CI actions to full-length commit SHAs
-- Do not install third-party MCP servers, AI skills, or agent plugins without code review — the [ClawHub attack](https://www.pointguardai.com/ai-security-incidents/openclaw-clawhub-malicious-skills-supply-chain-attack) (Feb 2026) distributed hundreds of malicious skill packages
+- Do not install third-party MCP servers, AI skills, or agent plugins without code review
 
 ## Cryptographic Operations
 
@@ -89,8 +87,6 @@
 - Use standard crypto libraries — never hand-roll cryptography
 
 ## MCP and Tool Security
-
-MCP servers had [30+ CVEs filed in 60 days](https://www.heyuan110.com/posts/ai/2026-03-10-mcp-security-2026/) (Jan-Feb 2026). 82% of implementations have path traversal, 43% have shell injection.
 
 - MCP tool responses are untrusted input — validate and sanitize before rendering, storing, or passing to LLM context
 - Maintain an explicit allowlist of permitted tool names — reject calls to unlisted tools
@@ -101,12 +97,10 @@ MCP servers had [30+ CVEs filed in 60 days](https://www.heyuan110.com/posts/ai/2
 
 ## AI Tooling Safety
 
-AI IDE exploitation is a [documented attack surface](https://thehackernews.com/2025/12/researchers-uncover-30-flaws-in-ai.html) (30+ CVEs across all major AI IDEs, Dec 2025).
-
 - Before opening any cloned repository, inspect `.claude/`, `.cursor/`, `.github/copilot/`, and similar AI tool config directories for unexpected shell commands, URL overrides, or environment variable manipulation
 - Never trust `ANTHROPIC_BASE_URL` or similar API endpoint overrides from repository-level config files — these can exfiltrate API keys ([CVE-2025-59536, CVE-2026-21852](https://research.checkpoint.com/2026/rce-and-api-token-exfiltration-through-claude-code-project-files-cve-2025-59536/))
+- Never run Claude Code with `--dangerously-skip-permissions` on untrusted code — this bypasses all permission checks, deny rules, and hooks
 - When reviewing PRs, check for additions to AI tool config directories — these are attack surfaces
-- Database configuration changes generated by AI require explicit human verification — AI-generated misconfigurations have caused [production data exposure](https://towardsdatascience.com/the-reality-of-vibe-coding-ai-agents-and-the-security-debt-crisis/)
 
 ## Logging
 

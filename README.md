@@ -2,53 +2,65 @@
 
 Shared security and convention rules for [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) projects.
 
-AI-generated code produces [1.7x more issues per PR](https://www.coderabbit.ai/blog/state-of-ai-vs-human-code-generation-report) than human code (CodeRabbit, 470 PRs). In a [DryRun Security study](https://www.helpnetsecurity.com/2026/03/13/claude-code-openai-codex-google-gemini-ai-coding-agent-security/) of 30 AI-generated PRs, 87% contained security vulnerabilities. The [Snyk 2026 Developer Security Report](https://www.cybersecuritydive.com/news/security-issues-ai-generated-code-snyk/705926/) found most developers don't scan AI-generated code for vulnerabilities. These rules give Claude guardrails where it matters most.
+AI-generated code produces [1.7x more issues per PR](https://www.coderabbit.ai/blog/state-of-ai-vs-human-code-generation-report) than human code (CodeRabbit, 470 PRs). In a [DryRun Security study](https://www.helpnetsecurity.com/2026/03/13/claude-code-openai-codex-google-gemini-ai-coding-agent-security/) of 30 AI-generated PRs, 87% contained security vulnerabilities. These rules give Claude guardrails where it matters most.
 
 ## What's included
 
-| File | Purpose |
-|------|---------|
-| `rules/security.md` | Input validation, access control, injection, XSS, SSRF, secrets, auth, async safety, CORS, headers, supply chain, MCP/tool security, AI tooling safety, crypto, logging |
-| `rules/git-conventions.md` | Branch naming, git safety rules for destructive operations |
-| `rules/commit-preferences.md` | AI attribution (trailers not co-authorship), ADRs, commit message format |
-| `rules/code-hygiene.md` | Type safety, error handling, search-before-create, verify-before-use, debt management, AI-specific discipline |
-| `hooks.md` | Hook patterns, template `settings.json`, exit code reference |
+| File | Lines | Purpose |
+|------|-------|---------|
+| `rules/security.md` | ~110 | Input validation, access control, injection, XSS, SSRF, secrets, error handling, async safety, CORS, headers, supply chain, MCP/tool security, AI tooling safety, crypto, logging |
+| `rules/code-hygiene.md` | ~55 | Type safety, error handling, search-before-create, verification, replacement=deletion, debt budget, AI discipline |
+| `rules/git-conventions.md` | ~12 | Git safety, destructive operation protocol |
+| `rules/commit-preferences.md` | ~30 | AI attribution (trailers not co-authorship), commit message format |
+| `hooks.md` | ~105 | Hook patterns, template `settings.json`, exit code reference |
 
-Informed by [OWASP Top 10:2025](https://owasp.org/Top10/2025/), [OWASP Agentic Top 10](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/), [CWE Top 25 2024](https://cwe.mitre.org/top25/archive/2024/2024_cwe_top25.html), the [OpenSSF AI Code Assistant Guide](https://best.openssf.org/Security-Focused-Guide-for-AI-Code-Assistant-Instructions.html), and the [IDEsaster](https://thehackernews.com/2025/12/researchers-uncover-30-flaws-in-ai.html) / [MCP CVE disclosures](https://www.heyuan110.com/posts/ai/2026-03-10-mcp-security-2026/) (Q1 2026).
+Draws from [OWASP Top 10:2025](https://owasp.org/Top10/2025/), [OWASP Agentic Top 10](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/), [CWE Top 25 2024](https://cwe.mitre.org/top25/archive/2024/2024_cwe_top25.html), and the [OpenSSF AI Code Assistant Guide](https://best.openssf.org/Security-Focused-Guide-for-AI-Code-Assistant-Instructions.html). Coverage is not exhaustive; these are the rules most relevant to AI-assisted code generation.
+
+## What this is NOT
+
+- Not a replacement for SAST/DAST scanning — these are authoring-time guardrails, not analysis tools
+- Not runtime security — CSP headers, rate limiting, and auth middleware must be implemented in your code
+- Not immune to context compaction — in long sessions, Claude may summarize rules away. Hooks (which execute as code) are immune; text rules are not
+- Not bypass-proof — `--dangerously-skip-permissions` disables all hooks and deny rules
 
 ## Installation
 
-### Option 1: Symlink (recommended for your own repos)
+### Option 1: Symlink (recommended)
 
 ```bash
 git clone https://github.com/Fieldnote-Echo/claude-secure-config.git
 bash claude-secure-config/setup.sh /path/to/your-repo
 ```
 
-This creates `.claude/rules/org/` in your repo with symlinks back to this repo. Add to `.gitignore`:
+Creates `.claude/rules/org/` with symlinks. Add to `.gitignore`:
 
 ```
 .claude/rules/org/
 ```
 
-### Option 2: Copy (for repos you want to commit rules into)
+Symlink users get updates automatically when you `git pull` this repo.
+
+### Option 2: Copy
 
 ```bash
 bash claude-secure-config/setup.sh /path/to/your-repo --copy
 ```
 
+Copied files are snapshots. Re-run `setup.sh --copy` to get updates (it overwrites).
+
 ### Option 3: Manual
 
 Copy any individual rule file into your project's `.claude/rules/` directory.
 
-### Option 4: @import (no symlinks)
+### Option 4: @import
 
 Reference rules directly from your `CLAUDE.md`:
 
 ```markdown
 @/path/to/claude-secure-config/rules/security.md
-@/path/to/claude-secure-config/rules/code-hygiene.md
 ```
+
+The path must resolve on every developer's machine. For teams, prefer symlinks (Option 1) or copies (Option 2).
 
 ## How it works
 
@@ -60,17 +72,24 @@ Claude Code loads `.md` files from `.claude/rules/` as project instructions. The
 .claude/rules/org/*.md     → Shared org/team rules (from this repo)
 ```
 
+Total token budget across all loaded rules is roughly 500-800 lines before attention degrades. This repo's rules total ~210 lines, leaving room for project-specific additions.
+
 ## Hooks (enforcement, not suggestions)
 
-Text instructions can be ignored. Hooks can't. See [`hooks.md`](hooks.md) for:
+Text rules can be ignored. Hooks can't. See [`hooks.md`](hooks.md) for:
 
-- **PreToolUse:** Block destructive commands (`rm -rf`, `git push --force`, pushes to main)
+- **PreToolUse:** Block destructive commands (`rm -rf`, `git push --force`, pushes to main, `--no-verify`)
 - **PostToolUse:** Auto-format files after Claude edits them
-- **Permissions:** Hard-deny reading `.env` files; pre-allow safe commands
+- **Permissions:** Hard-deny reading/writing `.env` files; pre-allow safe commands
 
 Copy the template `settings.json` from `hooks.md` into your project's `.claude/settings.json`.
 
-Use `.claude/settings.local.json` (gitignored) for personal overrides.
+## Sandboxing
+
+Text rules and hooks are defense-in-depth. For isolation guarantees, run Claude Code in a sandbox:
+
+- **Built-in:** Claude Code supports OS-level sandboxing. See [Anthropic's sandboxing docs](https://www.anthropic.com/engineering/claude-code-sandboxing).
+- **Container:** For untrusted repos, use Docker or DevContainers. See [Trail of Bits' devcontainer](https://github.com/trailofbits/claude-code-devcontainer).
 
 ## Path scoping
 
@@ -80,24 +99,21 @@ Add YAML frontmatter to restrict when a rule loads:
 ---
 paths:
   - "src/**/*.ts"
-  - "tests/**/*.ts"
 ---
 ```
 
-**Known limitation:** Path-scoped rules trigger on file reads, not writes. They may not fire when creating new files in a scoped directory.
+**Known limitation:** Path-scoped rules trigger on file reads, not writes.
 
 ## Internal rules (private, gitignored)
-
-For org-specific or sensitive rules you don't want public:
 
 1. Fork this repo
 2. Create an `internal/` directory (it's gitignored)
 3. Add `.md` rule files there
 4. Run `setup.sh` — it installs both `rules/` and `internal/`
 
-Claude Code reads from the filesystem, not from git — gitignored files still load. Your internal rules stay private even if your fork is public.
+Claude Code reads from the filesystem, not git — gitignored files still load.
 
-**Caveat:** `.gitignore` is not a security boundary. A `git add -f` or a GUI client can still stage ignored files. For truly sensitive rules, store them outside the repo (e.g., `~/.claude/rules/`) and use `@import` to reference them.
+**Caveat:** `.gitignore` is not a security boundary. For truly sensitive rules, store them outside the repo (e.g., `~/.claude/rules/`) and use `@import`.
 
 ## Compaction survival
 
@@ -111,18 +127,16 @@ Always preserve: the current task goal, all modified file paths, test commands a
 
 ## Customizing
 
-These rules are intentionally generic. For project-specific rules:
-
 1. Keep shared rules in `.claude/rules/org/` (from this repo)
 2. Add project-specific rules as `.claude/rules/your-framework.md`
 3. Put the most critical 3-5 rules in `.claude/CLAUDE.md` for primacy bias (top of file = highest attention)
-4. Keep your project-specific `CLAUDE.md` under 200 lines — shared org rules load separately and Claude handles the layering
+4. Keep your project-specific `CLAUDE.md` under 200 lines
 
 ## Contributing
 
 PRs welcome. Keep rules:
 - Generic (no project-specific paths or tool names)
-- Positive framing first ("always do X"), then the boundary ("never do Y") — [research shows this works better](https://gadlet.com/posts/negative-prompting/)
+- Positive framing first ("always do X"), then the boundary ("never do Y")
 - Concise (every token costs context window budget)
 - Backed by data where possible (cite sources for claims)
 

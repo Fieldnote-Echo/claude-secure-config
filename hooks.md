@@ -100,3 +100,5 @@ These hooks require: bash, jq, grep with PCRE support (`-P` flag). Windows users
 ## Personal Overrides
 
 Use `.claude/settings.local.json` (gitignored by convention) for personal hook customization without modifying the shared settings.
+
+**Security note:** Local settings can override shared deny rules. If your threat model includes insider risk, enforce critical deny rules at the user level (`~/.claude/settings.json`) rather than the project level.

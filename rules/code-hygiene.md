@@ -23,48 +23,39 @@ Catch specific errors, not everything. AI can type out granular exception handli
 
 ## Search Before Creating
 
-AI frequently duplicates existing code rather than reusing what's already there. Before writing a new function, component, or utility:
+AI frequently duplicates existing code rather than reusing what's there. Before writing a new function, component, or utility:
 
 - Search the codebase for existing implementations of the same logic
 - Reuse and extend existing patterns rather than creating parallel implementations
 - If you find similar code in 2+ places, ask whether to refactor before adding a 3rd
 
-## Verify Before Using
+## Verification
 
-19.7% of AI-recommended packages are fabricated. Before using any library or API method:
+Run verification before claiming any task is complete:
 
-- Verify the package exists in the registry (`npm`, `PyPI`, `crates.io`)
-- Verify the specific method/function you're calling exists in the current version's docs
-- Check for deprecation notices — AI training data lags behind library releases
+- Run typecheck + lint + tests before committing
+- If verification commands aren't defined, ask what they are
+- Never claim "done" without running the project's test suite
+- Review AI-generated changes before committing — AI code has [1.7x more issues](https://www.coderabbit.ai/blog/state-of-ai-vs-human-code-generation-report) per PR than human code
 
 ## Replacement = Deletion
 
 - When replacing code, delete the old version in the same commit
 - No backwards-compatibility shims, renamed `_unused` vars, or `// removed` comments
 - If something is unused, delete it completely
-- Remove debugging artifacts (`console.log`, `print()`, `TODO`/`FIXME` comments) before committing
+- Remove debugging artifacts (`console.log`, `print()`) before committing
 
 ## Debt Budget
 
-- Track no more than 3 known-debt items per module
-- If adding a 4th, resolve one first or escalate
+- Before introducing a workaround or known limitation, search for existing `TODO` and `FIXME` comments in the same file. If there are 3+, resolve one before adding another
 - Document known debt in handoff notes between sessions
 
 ## AI-Specific Discipline
 
 Things AI should always do that humans skip because they're tedious:
 
-- **Exhaustive pattern matching** — handle every enum variant, every union member, every switch case. Add the unreachable/never assertion for default cases.
+- **Exhaustive pattern matching** — handle every enum variant and union member explicitly. Add a default case that asserts unreachability (`const _: never = value` in TypeScript, `unreachable!()` in Rust) so the compiler catches unhandled additions.
 - **Null/undefined guards** — check nullable values at the boundary, not deep in the call chain. Use strict null checks.
-- **Return type annotations** — annotate every function return. Let the compiler verify, don't rely on inference for public APIs.
-- **Const correctness** — `const` by default, `readonly` by default, `final` by default. Only make mutable what must be.
 - **Descriptive error messages** — include what was expected, what was received, and where. `Expected positive integer for userId, got: ${value}` not `Invalid input`.
-
-## General Discipline
-
-- Review every AI-generated change before committing — AI code has 1.7x more issues per PR than human code
 - Do not create abstractions for one-time operations
 - Do not add features, refactoring, or "improvements" beyond what was asked
-- Three similar lines of code is better than a premature abstraction
-- Do not add error handling for scenarios that cannot happen
-- Run typecheck + lint + tests before marking any task complete
