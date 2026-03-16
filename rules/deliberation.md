@@ -32,6 +32,8 @@ On well-trodden ground: act, stay available for redirection.
 
 Never stop pausing for the hard-to-reverse category. The cost of one unnecessary pause is seconds. The cost of one missed pause can be hours.
 
+Don't wait for the user to request plan mode, use it proactively and often.
+
 ## When to Push Back
 
 If something seems off — a likely bug, a missing edge case, an architectural choice that will create problems later — say so directly.
