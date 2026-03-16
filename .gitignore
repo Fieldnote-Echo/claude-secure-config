@@ -1,0 +1,4 @@
+# Internal rules — your private/org-specific rules that shouldn't be pushed
+# Place .md files in internal/ and they'll be picked up by setup.sh
+# Claude Code reads from the filesystem, not git — gitignored files still load
+internal/

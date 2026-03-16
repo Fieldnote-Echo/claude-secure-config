@@ -67,6 +67,29 @@ paths:
 
 This means the rule only loads when Claude is working on files matching those patterns.
 
+## Internal rules (private, gitignored)
+
+For org-specific or sensitive rules you don't want public:
+
+1. Fork this repo
+2. Create an `internal/` directory (it's gitignored)
+3. Add `.md` rule files there — e.g. `internal/infra-secrets.md`, `internal/deploy-policy.md`
+4. Run `setup.sh` — it installs both `rules/` and `internal/` into your target project
+
+```bash
+mkdir internal
+cat > internal/deploy-policy.md << 'EOF'
+# Deploy Policy
+- Production deploys require approval from #platform-eng
+- Staging auto-deploys from main
+- Never modify terraform state directly
+EOF
+
+bash setup.sh /path/to/your-repo
+```
+
+Claude Code reads from the filesystem, not from git — gitignored files still load into every session. Your internal rules stay private even if your fork is public.
+
 ## Customizing
 
 These rules are intentionally generic. For project-specific rules:
