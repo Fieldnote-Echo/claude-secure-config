@@ -1,0 +1,1 @@
+This folder contains custom instructions from the human. They do not override the base instructions, they compliment them. Where there is ambiguity or conflict, always ask first rather than operating on assumptions.

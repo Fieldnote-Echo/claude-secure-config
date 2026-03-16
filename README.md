@@ -117,12 +117,25 @@ For isolation guarantees beyond hooks, run Claude Code in a sandbox:
 - **Built-in:** OS-level sandboxing via [Anthropic's sandbox](https://www.anthropic.com/engineering/claude-code-sandboxing)
 - **Container:** Docker or [Trail of Bits' devcontainer](https://github.com/trailofbits/claude-code-devcontainer) for untrusted repos
 
+## Custom instructions
+
+Place custom `.md` files in `internal/` to add your own instructions that complement the base rules. The `internal/custom-instructions.md` file is tracked and serves as the entry point; all other files in `internal/` are gitignored.
+
+Custom instructions do not override the base rules — they complement them. Where there is ambiguity or conflict, the AI should ask rather than assume.
+
+To install custom rules alongside the shared rules:
+
+```bash
+bash setup.sh /path/to/your-repo --internal
+```
+
+Custom rules are **never installed by default** — this is a security decision. The `--internal` flag lists every custom rule and requires explicit confirmation before installing. This prevents unreviewed instructions from silently entering a target project.
+
 ## Internal rules (private, gitignored)
 
 1. Fork this repo
-2. Create `internal/` (it's gitignored)
-3. Add `.md` rule files there
-4. Run `setup.sh` — installs both `rules/` and `internal/`
+2. Add `.md` rule files to `internal/`
+3. Run `setup.sh --internal` — installs both `rules/` and `internal/` (with confirmation)
 
 Claude reads from the filesystem, not git — gitignored files still load. For truly sensitive rules, store them in `~/.claude/rules/` instead.
 

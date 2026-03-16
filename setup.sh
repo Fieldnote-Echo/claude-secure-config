@@ -83,6 +83,7 @@ Install shared Claude Code rules into a target repository.
 
 Options:
   --copy        Copy files instead of symlinking (required on Windows without WSL)
+  --internal    Also install custom rules from internal/ (requires confirmation)
   --uninstall   Remove all rules installed by this tool
   --status      Show what's currently installed
   --dry-run     Preview what would happen without making changes
@@ -106,10 +107,12 @@ MODE=""
 ACTION="install"
 DRY_RUN=false
 FORCE=false
+INSTALL_INTERNAL=false
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --copy)      MODE="--copy"; shift ;;
+    --internal)  INSTALL_INTERNAL=true; shift ;;
     --uninstall) ACTION="uninstall"; shift ;;
     --status)    ACTION="status"; shift ;;
     --dry-run)   DRY_RUN=true; shift ;;
@@ -343,14 +346,36 @@ do_install() {
   echo "Installing shared rules..."
   install_rules "$RULES_DIR" "shared"
 
-  # Install internal rules if present and non-empty
-  if [ -d "$INTERNAL_DIR" ]; then
-    local internal_count
-    internal_count="$(count_md_files "$INTERNAL_DIR")"
-    if [ "$internal_count" -gt 0 ]; then
-      echo ""
-      echo "Installing internal rules..."
-      install_rules "$INTERNAL_DIR" "internal"
+  # Install internal/custom rules only when explicitly requested
+  if [ "$INSTALL_INTERNAL" = true ]; then
+    if [ -d "$INTERNAL_DIR" ]; then
+      local internal_count
+      internal_count="$(count_md_files "$INTERNAL_DIR")"
+      if [ "$internal_count" -gt 0 ]; then
+        echo ""
+        echo "Custom rules found in internal/:"
+        for rule in "$INTERNAL_DIR"/*.md; do
+          [ -f "$rule" ] || continue
+          echo "  $(basename "$rule")"
+        done
+        if [ "$DRY_RUN" = false ]; then
+          printf "\nInstall these custom rules? [y/N] "
+          read -r confirm
+          if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+            echo "Skipped internal rules."
+          else
+            echo ""
+            echo "Installing internal rules..."
+            install_rules "$INTERNAL_DIR" "internal"
+          fi
+        else
+          echo ""
+          echo "Internal rules (dry run)..."
+          install_rules "$INTERNAL_DIR" "internal"
+        fi
+      fi
+    else
+      warn "internal/ directory not found. No custom rules to install."
     fi
   fi
 
