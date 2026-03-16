@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 9 * * 1'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+          npm install -g markdownlint-cli@0.44.0
+      - name: ShellCheck
+        run: shellcheck setup.sh
+      - name: Markdownlint
+        run: markdownlint rules/ hooks.md README.md
+
+  test-unix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          submodules: true
+      - name: Install Bats
+        shell: bash
+        run: |
+          git clone --branch v1.11.1 --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            /tmp/bats/install.sh "$HOME/.local"
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          else
+            sudo /tmp/bats/install.sh /usr/local
+          fi
+      - name: Install jq
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            brew install jq
+          else
+            sudo apt-get update -qq && sudo apt-get install -y -qq jq
+          fi
+      - name: Run tests
+        shell: bash
+        run: bats tests/
+
+  test-windows:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          submodules: true
+      - name: Install Bats
+        shell: bash
+        run: |
+          git clone --branch v1.11.1 --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats
+          /tmp/bats/install.sh "$HOME/.local"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install jq
+        shell: bash
+        run: choco install jq -y
+      - name: Run copy-mode and error tests
+        shell: bash
+        env:
+          COPY_MODE_ONLY: "true"
+        run: bats tests/install.bats tests/uninstall.bats tests/status.bats tests/errors.bats
+
+  link-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Install lychee
+        run: |
+          curl -sL https://github.com/lycheeverse/lychee/releases/download/lychee-v0.18.0/lychee-x86_64-unknown-linux-gnu.tar.gz -o /tmp/lychee.tar.gz
+          echo "bcf318de50d1b516869deefd62a485a6ce8e38113c1b94d51fdd431d268f8156  /tmp/lychee.tar.gz" | sha256sum -c
+          tar xzf /tmp/lychee.tar.gz -C /tmp
+          sudo mv /tmp/lychee /usr/local/bin/
+      - name: Check links
+        run: lychee --no-progress --accept 429 rules/ hooks.md README.md
