@@ -1,0 +1,13 @@
+rules:
+  - id: unsafe-yaml-load
+    message: >-
+      yaml.load() without SafeLoader can execute arbitrary code.
+      Use yaml.safe_load() or yaml.load(data, Loader=yaml.SafeLoader).
+      See: security.md — "Use yaml.safe_load not yaml.load"
+    severity: ERROR
+    languages: [python]
+    patterns:
+      - pattern: yaml.load(...)
+      - pattern-not: yaml.load(..., Loader=yaml.SafeLoader)
+      - pattern-not: yaml.load(..., Loader=yaml.BaseLoader)
+      - pattern-not: yaml.load(..., Loader=yaml.CSafeLoader)

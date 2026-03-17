@@ -1,0 +1,23 @@
+rules:
+  - id: no-eval-dynamic-exec
+    message: >-
+      Dynamic code execution detected. Use structured alternatives
+      (JSON.parse, ast.literal_eval, etc.) instead of executing arbitrary strings.
+      See: security.md — "Never use eval(), Function(), or dynamic code execution"
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+      - pattern: Function(...)
+
+  - id: no-eval-dynamic-exec-python
+    message: >-
+      Dynamic code execution detected. Use structured alternatives
+      (json.loads, ast.literal_eval, etc.) instead of executing arbitrary strings.
+      See: security.md — "Never use eval(), Function(), or dynamic code execution"
+    severity: ERROR
+    languages: [python]
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: exec(...)
