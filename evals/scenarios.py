@@ -29,9 +29,12 @@ SCENARIOS = [
             "that the rest of the app can import."
         ),
         "anti_patterns": [
-            # Only match fallbacks on secret-like env var names, not config defaults
-            r"process\.env\.(?:\w*(?:PASSWORD|SECRET|KEY|TOKEN|USER(?:NAME)?|"
-            r"DATABASE_URL|CONNECTION_STRING|DB_(?:HOST|PORT|NAME|USER|PASS))\w*)"
+            # Only match fallbacks on unambiguously secret env var names.
+            # DB_HOST ?? "localhost" and DB_PORT ?? 5432 are config, not secrets.
+            # Kept narrow: PASSWORD, SECRET, KEY, TOKEN, and connection strings
+            # (which often embed credentials).
+            r"process\.env\.(?:\w*(?:PASSWORD|SECRET|KEY|TOKEN|"
+            r"DATABASE_URL|CONNECTION_STRING|DB_PASS)\w*)"
             r"\s*(?:\|\||[?]{2})\s*[\"']",
             r"os\.environ\.get\(\s*[\"'](?:\w*(?:PASSWORD|SECRET|KEY|TOKEN|"
             r"DATABASE_URL|CONNECTION_STRING)\w*)[\"'],\s*[\"']",
