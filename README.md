@@ -117,7 +117,7 @@ Claude Code loads `.md` files from `.claude/rules/` as project instructions:
 .claude/rules/org/*.md     → Shared rules (from this repo)
 ```
 
-This repo's rules total ~347 lines. Total budget across all loaded rules is roughly 500-800 lines before attention degrades — leaves room for project-specific additions.
+This repo's rules total ~309 lines. Total budget across all loaded rules is roughly 500-800 lines before attention degrades — leaves room for project-specific additions.
 
 ## Hooks
 
