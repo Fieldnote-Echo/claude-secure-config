@@ -14,24 +14,28 @@ teardown() {
   run run_pretooluse_hook '{"command": "rm -rf /"}'
   assert_failure
   assert [ "$status" -eq 2 ]
+  assert_output --partial "BLOCKED"
 }
 
 @test "git push --force is blocked" {
   run run_pretooluse_hook '{"command": "git push --force origin main"}'
   assert_failure
   assert [ "$status" -eq 2 ]
+  assert_output --partial "BLOCKED"
 }
 
 @test "git push -f (short flag) is blocked" {
   run run_pretooluse_hook '{"command": "git push -f origin main"}'
   assert_failure
   assert [ "$status" -eq 2 ]
+  assert_output --partial "BLOCKED"
 }
 
 @test "cat .env is blocked" {
   run run_pretooluse_hook '{"command": "cat .env"}'
   assert_failure
   assert [ "$status" -eq 2 ]
+  assert_output --partial "BLOCKED"
 }
 
 @test "safe command passes through" {
@@ -47,6 +51,71 @@ teardown() {
 @test "--no-verify in echo is not blocked (no false positive)" {
   run run_pretooluse_hook '{"command": "echo \"do not use --no-verify\""}'
   assert_success
+}
+
+@test "cat secrets/config is blocked (C1 regression)" {
+  run run_pretooluse_hook '{"command": "cat secrets/config.yml"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
+@test "ls src/secrets/ is not blocked (C1 false positive regression)" {
+  run run_pretooluse_hook '{"command": "ls src/secrets/"}'
+  assert_success
+}
+
+@test "newline-separated cat .env is blocked (H1 regression)" {
+  # Use JSON-escaped newline (\n) which jq will decode to a real newline in the command value
+  run run_pretooluse_hook '{"command": "cat\n.env"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
+@test "echo foo | fish is blocked (H2 pipe regression)" {
+  run run_pretooluse_hook '{"command": "echo foo | fish"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
+@test "zsh -c cmd is blocked (H2 nested regression)" {
+  run run_pretooluse_hook '{"command": "zsh -c \"rm -rf /\""}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
+@test "safe push then unsafe push is blocked (H3 segment regression)" {
+  run run_pretooluse_hook '{"command": "git push --force-with-lease origin main && git push --force origin main"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
+@test "chmod +s is blocked (H4 regression)" {
+  run run_pretooluse_hook '{"command": "chmod +s /tmp/exploit"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
+@test "chmod 755 is allowed (H4 false positive regression)" {
+  run run_pretooluse_hook '{"command": "chmod 755 script.sh"}'
+  assert_success
+}
+
+@test "git am --no-verify is blocked (H5 regression)" {
+  run run_pretooluse_hook '{"command": "git am --no-verify patch.mbox"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
+@test "/bin/cat .env is blocked (H6 path-qualified regression)" {
+  run run_pretooluse_hook '{"command": "/bin/cat .env"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
+}
+
+@test "/bin/chmod +s /tmp/file is blocked (H6 chmod path regression)" {
+  run run_pretooluse_hook '{"command": "/bin/chmod +s /tmp/file"}'
+  assert_failure
+  assert [ "$status" -eq 2 ]
 }
 
 @test "hooks.md template command blocks rm -rf (docs wiring smoke test)" {

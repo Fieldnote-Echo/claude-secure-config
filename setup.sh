@@ -63,7 +63,7 @@ canonicalize() {
     readlink -f "$path"
   else
     # Fallback: only works for directories
-    (cd "$path" && pwd -P)
+    (cd "$path" && pwd -P) || die "Failed to resolve path '$path'."
   fi
 }
 
@@ -120,8 +120,12 @@ while [ $# -gt 0 ]; do
     --copy)      MODE="--copy"; shift ;;
     --internal)  INSTALL_INTERNAL=true; shift ;;
     --yes|-y)    CONFIRM_YES=true; shift ;;
-    --uninstall) ACTION="uninstall"; shift ;;
-    --status)    ACTION="status"; shift ;;
+    --uninstall)
+      if [ "$ACTION" != "install" ]; then die "Conflicting flags: cannot use --uninstall with --$ACTION."; fi
+      ACTION="uninstall"; shift ;;
+    --status)
+      if [ "$ACTION" != "install" ]; then die "Conflicting flags: cannot use --status with --$ACTION."; fi
+      ACTION="status"; shift ;;
     --dry-run)   DRY_RUN=true; shift ;;
     --force)     FORCE=true; shift ;;
     --version)   echo "claude-secure-config $VERSION"; exit 0 ;;
@@ -249,7 +253,7 @@ do_uninstall() {
   # Remove org/ directory if empty
   if [ "$DRY_RUN" = false ] && [ -d "$DEST" ]; then
     if [ -z "$(ls -A "$DEST" 2>/dev/null)" ]; then
-      rmdir "$DEST"
+      rmdir "$DEST" 2>/dev/null || true
       echo "  Removed empty directory $DEST"
     fi
   fi
@@ -286,7 +290,7 @@ do_install() {
     for name in $SHARED_RULES; do
       local dest_file="$DEST/$name"
       if [ -e "$dest_file" ] && [ ! -L "$dest_file" ]; then
-        conflicts="${conflicts}  $name\n"
+        conflicts="${conflicts}  ${name}"$'\n'
       fi
     done
     if [ -d "$INTERNAL_DIR" ]; then
@@ -296,14 +300,14 @@ do_install() {
         name="$(basename "$rule")"
         local dest_file="$DEST/$name"
         if [ -e "$dest_file" ] && [ ! -L "$dest_file" ]; then
-          conflicts="${conflicts}  $name\n"
+          conflicts="${conflicts}  ${name}"$'\n'
         fi
       done
     fi
     if [ -n "$conflicts" ]; then
       echo "Warning: The following files in $DEST are regular files (not symlinks)" >&2
       echo "and would be overwritten:" >&2
-      printf "%b" "$conflicts" >&2
+      printf '%s' "$conflicts" >&2
       die "Use --force to overwrite, or back them up first."
     fi
   fi
@@ -312,9 +316,8 @@ do_install() {
   if [ "$DRY_RUN" = true ]; then
     echo "[dry run] Would create $DEST"
   else
-    if ! mkdir -p "$DEST" 2>/dev/null; then
-      die "Failed to create directory '$DEST'. Check permissions."
-    fi
+    local mkdir_err
+    mkdir_err="$(mkdir -p "$DEST" 2>&1)" || die "Failed to create directory '$DEST': $mkdir_err"
   fi
 
   local installed=0
@@ -386,7 +389,9 @@ do_install() {
     done
   }
 
+  _INSTALL_STARTED=true
   echo "Installing shared rules..."
+  # shellcheck disable=SC2086 # Intentional word splitting — SHARED_RULES is a space-separated allowlist
   install_rules_explicit "$RULES_DIR" "shared" $SHARED_RULES
 
   # Install internal/custom rules only when explicitly requested
@@ -437,13 +442,13 @@ do_install() {
 
   # Write marker file for provenance tracking
   if [ "$DRY_RUN" = false ]; then
-    cat > "$DEST/$MARKER" <<EOF
-# Managed by claude-secure-config. Do not edit.
-$SCRIPT_DIR
-$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-$VERSION
-$MODE
-EOF
+    {
+      printf '%s\n' "# Managed by claude-secure-config. Do not edit."
+      printf '%s\n' "$SCRIPT_DIR"
+      printf '%s\n' "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+      printf '%s\n' "$VERSION"
+      printf '%s\n' "$MODE"
+    } > "$DEST/$MARKER"
   fi
 
   # Detect and report orphaned files (installed previously but no longer in source)
@@ -454,19 +459,19 @@ EOF
       local name
       name="$(basename "$existing")"
       # Check if this file came from our source dirs
-      if [ ! -f "$RULES_DIR/$name" ] && [ ! -f "$INTERNAL_DIR/$name" ] 2>/dev/null; then
-        orphans="${orphans}  $name"
+      if [ ! -f "$RULES_DIR/$name" ] && [ ! -f "$INTERNAL_DIR/$name" ]; then
+        orphans="${orphans}  ${name}"
         # Report broken symlinks distinctly
         if [ -L "$existing" ] && [ ! -e "$existing" ]; then
           orphans="${orphans}  [BROKEN SYMLINK]"
         fi
-        orphans="${orphans}\n"
+        orphans="${orphans}"$'\n'
       fi
     done
     if [ -n "$orphans" ]; then
       echo ""
       warn "Orphaned files in $DEST (not in current source):"
-      printf "%b" "$orphans" >&2
+      printf '%s' "$orphans" >&2
       echo "  Remove manually or run with --uninstall to clean up." >&2
     fi
   fi
@@ -487,6 +492,15 @@ EOF
     fi
   fi
 }
+
+# --- Cleanup trap ---
+
+_cleanup_on_exit() {
+  if [ -n "${_INSTALL_STARTED:-}" ] && [ -d "${DEST:-}" ] && [ ! -f "${DEST:-}/$MARKER" ]; then
+    echo "Warning: Install was interrupted. Run --uninstall --force to clean up." >&2
+  fi
+}
+trap _cleanup_on_exit EXIT
 
 # --- Dispatch ---
 
