@@ -30,10 +30,9 @@ Layer 3: Scaffold   → "Why are we doing this?"  (cognitive partnership)
 
 | File | Purpose |
 |------|---------|
-| `rules/security.md` | Input validation, access control, injection, XSS, SSRF, secrets, error handling, async safety, CORS, headers, supply chain, MCP/tool security, AI tooling safety, crypto, logging |
-| `rules/code-hygiene.md` | Type safety, granular error handling, search-before-create, verification, debt budget, AI discipline |
-| `rules/git-conventions.md` | Git safety, destructive operation protocol |
-| `rules/commit-preferences.md` | AI attribution (trailers not co-authorship), commit message format |
+| `rules/security.md` | Input validation, access control, injection, XSS, SSRF, secrets, error handling, CORS, supply chain, MCP/tool security, AI tooling safety, crypto, headers, logging |
+| `rules/code-hygiene.md` | Type safety, granular error handling, async safety, search-before-create, verification, debt budget, AI discipline |
+| `rules/git-conventions.md` | Git safety, destructive operation protocol, commit format, AI attribution, scope discipline |
 
 ### Layer 1: Enforcement
 

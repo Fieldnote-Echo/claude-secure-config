@@ -2,22 +2,34 @@
 
 ## Safety
 
-- Never force-push to main/master. On feature branches, use `--force-with-lease` (checks that remote hasn't changed since your last fetch).
-- Never skip pre-commit hooks (`--no-verify`). If a hook fails, fix the underlying issue — the hook caught something real.
+- Never force-push to main/master. Never skip hooks (`--no-verify`). Fix the underlying issue instead. (Hooks also enforce this.)
 - Never amend commits that have been pushed to a shared branch — create new fixup commits instead. Amending your own unpushed feature branch is fine.
 - Stage specific files (`git add <file>`), never `git add -A` or `git add .`
 
 ## Destructive Operations
 
-Before destructive git operations (force-push, reset --hard, branch deletion, rebase of shared branches): show what will be affected (e.g., `git log` of commits to be lost, `git diff` of changes to be discarded), then wait for explicit approval.
+Before destructive git operations: show what will be affected, then wait for approval. (Hooks block the most dangerous commands.)
 
-## Undoing Changes (without reset --hard)
+## Commit Format
 
-- Undo last commit, keep changes staged: `git reset --soft HEAD~1`
-- Undo last commit, unstage changes: `git reset HEAD~1`
-- Discard changes to one file: `git checkout -- <file>`
-- Undo a merge: `git revert -m 1 <merge-sha>`
-- Pull in specific fixes: `git cherry-pick <sha>`
-- Match remote exactly: `git fetch && git checkout -B branch origin/branch`
+Format: `<type>: <description>` (feat|fix|refactor|test|chore|docs), imperative mood.
+Body explains WHY, not WHAT (the diff shows what). Reference issues/tickets where applicable.
 
-Every undo should be scoped and reversible. If `reset --hard` feels necessary, checkpoint first (`git stash` or `git branch backup-<name>`).
+Trailers:
+
+| Trailer | When to use |
+|---------|-------------|
+| `Coding-Agent: claude-code` | Identifies the tool |
+| `Model: claude-opus-4-6` | Identifies the specific model |
+| `AI-assisted: syntax, type search, text generation` | Describes what the AI contributed |
+| `Helped-by: claude-code` | Git's existing trailer for tool/person assistance |
+
+## AI Attribution
+
+Do NOT use `Co-Authored-By` for AI tools — it assigns agency where there is none and may complicate IP ownership. AI is a tool, not a collaborator.
+
+**Note:** Claude Code adds `Co-Authored-By` by default. Override with a PostToolUse hook or configure your commit workflow to use trailers instead.
+
+## Scope Discipline
+
+One commit = one change. No feature creep, no premature abstractions, no orphaned old code.
