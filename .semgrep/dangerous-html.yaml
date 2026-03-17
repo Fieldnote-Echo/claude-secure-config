@@ -2,8 +2,8 @@ rules:
   - id: dangerous-inner-html
     message: >-
       dangerouslySetInnerHTML bypasses React's XSS protection.
-      Ensure content is sanitized (e.g., DOMPurify.sanitize()).
-      Add nosemgrep comment if reviewed and approved.
+      All uses require manual review — sanitization alone does not suppress this rule.
+      Add a nosemgrep comment after review to suppress.
       See: security.md — "Never use dangerouslySetInnerHTML with user-supplied content"
     severity: WARNING
     languages: [typescript, javascript]

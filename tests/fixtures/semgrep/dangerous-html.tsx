@@ -15,3 +15,9 @@ function Safe({ content }: { content: string }) {
   // ok: dangerous-inner-html
   return <div>{content}</div>;
 }
+
+function Suppressed({ content }: { content: string }) {
+  // ok: dangerous-inner-html
+  // nosemgrep: dangerous-inner-html
+  return <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }} />;
+}

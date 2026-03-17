@@ -17,3 +17,9 @@ const port = process.env.PORT || "3000";
 const env = process.env.NODE_ENV || "development";
 // ok: fallback-secret-js
 const logLevel = process.env.LOG_LEVEL || "info";
+
+// Bracket notation variants
+// ruleid: fallback-secret-js
+const key2 = process.env["API_KEY"] || "sk-bracket-key";
+// ok: fallback-secret-js
+const host2 = process.env["DB_HOST"] || "127.0.0.1";

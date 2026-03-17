@@ -112,3 +112,5 @@ jobs:
         run: pip install semgrep==1.155.0
       - name: Validate rules against fixtures
         run: bash tests/semgrep-validate.sh
+      - name: Scan repository
+        run: semgrep scan --config .semgrep/ . --exclude='tests/fixtures/**' --error
