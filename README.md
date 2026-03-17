@@ -65,7 +65,7 @@ The quick start above uses **symlinks** (recommended). Other options:
 | Manual | Copy individual files to `.claude/rules/` | Manual |
 | @import | `@/path/to/rules/security.md` in CLAUDE.md | Automatic |
 
-Run `setup.sh --help` for all flags. See the [wiki](../../wiki) for setup.sh reference, provenance tracking, and advanced configuration.
+Run `setup.sh --help` for all flags. See the [setup.sh reference](../../wiki/Setup.sh-Reference) for provenance tracking and advanced configuration.
 
 ## Hooks
 
@@ -82,7 +82,7 @@ For isolation beyond hooks: [Anthropic's built-in sandbox](https://www.anthropic
 internal/*.md              → Private rules (gitignored, install with --internal)
 ```
 
-See the [wiki](../../wiki) for customization patterns, internal rules, and compaction survival strategies.
+See the wiki for [customization patterns](../../wiki/Customization-Patterns), [internal rules](../../wiki/Customization-Patterns#how-do-i-add-internal-or-private-rules), and [compaction survival](../../wiki/Customization-Patterns#how-do-i-keep-rules-from-being-lost-during-long-sessions).
 
 ## Limitations
 
@@ -98,7 +98,7 @@ Built on [OWASP Top 10:2025](https://owasp.org/Top10/2025/), [OWASP Agentic Top 
 
 ## Contributing
 
-PRs welcome. Keep rules generic, concise, and backed by data where possible. See the [wiki](../../wiki) for contribution guidelines.
+PRs welcome. Keep rules generic, concise, and backed by data where possible. See the [contributing guide](../../wiki/Contributing) for rule design principles and testing requirements.
 
 ## License
 
