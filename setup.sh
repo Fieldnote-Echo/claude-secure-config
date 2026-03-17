@@ -391,6 +391,7 @@ do_install() {
 
   _INSTALL_STARTED=true
   echo "Installing shared rules..."
+  # shellcheck disable=SC2086 # Intentional word splitting — SHARED_RULES is a space-separated allowlist
   install_rules_explicit "$RULES_DIR" "shared" $SHARED_RULES
 
   # Install internal/custom rules only when explicitly requested
