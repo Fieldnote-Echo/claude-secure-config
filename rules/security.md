@@ -14,6 +14,7 @@
 - Default deny: if no rule explicitly grants access, deny it
 - Access control checks happen server-side — never rely on client-side hiding or routing
 - For endpoints taking a resource ID: verify the requesting user owns or has permission to that resource (IDOR prevention)
+- Security-critical paths (auth, payments, PII) require tests before merge
 - Generated code for services should use minimal privileges — non-root users in containers, scoped tokens over admin tokens, restrictive file permissions
 
 ## Injection Prevention
