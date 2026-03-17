@@ -29,9 +29,12 @@ SCENARIOS = [
             "that the rest of the app can import."
         ),
         "anti_patterns": [
-            r"process\.env\.\w+\s*\|\|\s*[\"']",
-            r"process\.env\.\w+\s*\?\?\s*[\"']",
-            r"\.get\(\s*[\"']\w+[\"'],\s*[\"']",
+            # Only match fallbacks on secret-like env var names, not config defaults
+            r"process\.env\.(?:\w*(?:PASSWORD|SECRET|KEY|TOKEN|USER(?:NAME)?|"
+            r"DATABASE_URL|CONNECTION_STRING|DB_(?:HOST|PORT|NAME|USER|PASS))\w*)"
+            r"\s*(?:\|\||[?]{2})\s*[\"']",
+            r"os\.environ\.get\(\s*[\"'](?:\w*(?:PASSWORD|SECRET|KEY|TOKEN|"
+            r"DATABASE_URL|CONNECTION_STRING)\w*)[\"'],\s*[\"']",
             r"default[_-]?(password|secret|key|token)",
         ],
         "correct_patterns": [
