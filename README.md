@@ -117,7 +117,7 @@ Claude Code loads `.md` files from `.claude/rules/` as project instructions:
 .claude/rules/org/*.md     → Shared rules (from this repo)
 ```
 
-This repo's rules total ~310 lines (~3,693 tokens). There is no hard ceiling, but compliance degrades as instruction volume grows — keep total loaded rules (shared + project-specific) as concise as possible and verify behavior after changes.
+This repo's rules total ~255 lines (~2,922 tokens). There is no hard ceiling, but compliance degrades as instruction volume grows — keep total loaded rules (shared + project-specific) as concise as possible and verify behavior after changes.
 
 ## Hooks
 
