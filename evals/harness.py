@@ -140,6 +140,10 @@ def run_scenario(
             refusal_strength=0,
             unprompted=False,
             fabricated_verification=False,
+            preflight=False,
+            risk_framing=False,
+            deliberation=False,
+            verification_posture=False,
             raw_response="[dry run]",
         )
         return dummy, dummy
@@ -148,7 +152,7 @@ def run_scenario(
     print("    base...", end="", flush=True)
     base_response = call_api(client, model, base_prompt, scenario["user_message"])
     base_score = score_response(base_response, scenario, "base")
-    print(f" composite={base_score.composite}", end="", flush=True)
+    print(f" safety={base_score.safety_composite} process={base_score.process_composite}", end="", flush=True)
 
     time.sleep(1)
 
@@ -156,7 +160,7 @@ def run_scenario(
     print("  rules...", end="", flush=True)
     rules_response = call_api(client, model, rules_prompt, scenario["user_message"])
     rules_score = score_response(rules_response, scenario, "rules")
-    print(f" composite={rules_score.composite}")
+    print(f" safety={rules_score.safety_composite} process={rules_score.process_composite}")
 
     return base_score, rules_score
 
@@ -192,50 +196,60 @@ def run_with_reruns(
 
 
 def format_summary(results: list[DiscriminationResult]) -> str:
-    """Format results as a human-readable summary table."""
+    """Format results as a human-readable dual-channel summary."""
     lines = [
         "",
-        "=" * 80,
+        "=" * 95,
         "PHASE 3A BEHAVIORAL EVAL — DISCRIMINATION REPORT",
-        "=" * 80,
+        "=" * 95,
         "",
+        "SAFETY ADHERENCE (unsafe patterns avoided, correct mitigations used)",
         f"{'Scenario':<40} {'Base':>6} {'Rules':>6} {'Delta':>7}  {'Verdict'}",
         "-" * 80,
     ]
     for r in results:
         lines.append(
-            f"{r.scenario_name:<40} {r.base_composite:>6.3f} "
-            f"{r.rules_composite:>6.3f} {r.discrimination:>+7.3f}  {r.verdict}"
+            f"{r.scenario_name:<40} {r.base_safety:>6.3f} "
+            f"{r.rules_safety:>6.3f} {r.safety_discrimination:>+7.3f}  {r.safety_verdict}"
+        )
+    lines.append("")
+    lines.append("PROCESS/SCAFFOLD (preflight, risk framing, deliberation, verification)")
+    lines.append(f"{'Scenario':<40} {'Base':>6} {'Rules':>6} {'Delta':>7}  {'Verdict'}")
+    lines.append("-" * 80)
+    for r in results:
+        lines.append(
+            f"{r.scenario_name:<40} {r.base_process:>6.3f} "
+            f"{r.rules_process:>6.3f} {r.process_discrimination:>+7.3f}  {r.process_verdict}"
         )
     lines.append("-" * 80)
 
-    counts = {}
+    # Safety summary
+    s_counts = {}
     for r in results:
-        counts[r.verdict] = counts.get(r.verdict, 0) + 1
+        s_counts[r.safety_verdict] = s_counts.get(r.safety_verdict, 0) + 1
+    p_counts = {}
+    for r in results:
+        p_counts[r.process_verdict] = p_counts.get(r.process_verdict, 0) + 1
 
-    summary_parts = []
-    for verdict in ["DISCRIMINATING", "WEAK/INCONCLUSIVE", "NON-DISCRIMINATING", "REGRESSION"]:
-        if verdict in counts:
-            summary_parts.append(f"{verdict}: {counts[verdict]}")
-    lines.append(f"\n{' | '.join(summary_parts)}  |  Total: {len(results)}")
+    lines.append(f"\nSafety:  " + " | ".join(
+        f"{v}: {c}" for v, c in sorted(s_counts.items()) if c > 0
+    ))
+    lines.append(f"Process: " + " | ".join(
+        f"{v}: {c}" for v, c in sorted(p_counts.items()) if c > 0
+    ))
 
-    weak = [r for r in results if r.verdict == "WEAK/INCONCLUSIVE"]
-    if weak:
-        lines.append("\nWEAK/INCONCLUSIVE (rerun with --reruns 3):")
-        for r in weak:
-            lines.append(f"  - {r.scenario_name} ({r.discrimination:+.3f})")
+    # Call out interesting cases
+    s_regr = [r for r in results if r.safety_verdict == "REGRESSION"]
+    if s_regr:
+        lines.append("\nSAFETY REGRESSIONS:")
+        for r in s_regr:
+            lines.append(f"  - {r.scenario_name}: {r.safety_discrimination:+.3f}")
 
-    non_disc = [r for r in results if r.verdict == "NON-DISCRIMINATING"]
-    if non_disc:
-        lines.append("\nNon-discriminating (assert(true) candidates):")
-        for r in non_disc:
-            lines.append(f"  - {r.scenario_name}")
-
-    regr = [r for r in results if r.verdict == "REGRESSION"]
-    if regr:
-        lines.append("\nREGRESSIONS (rules made behavior worse):")
-        for r in regr:
-            lines.append(f"  - {r.scenario_name}: {r.discrimination:+.3f}")
+    p_disc = [r for r in results if r.process_verdict == "DISCRIMINATING"]
+    if p_disc:
+        lines.append("\nPROCESS DISCRIMINATING (rules improve how the model approaches the task):")
+        for r in p_disc:
+            lines.append(f"  - {r.scenario_name}: {r.process_discrimination:+.3f}")
 
     lines.append("")
     return "\n".join(lines)

@@ -125,8 +125,8 @@ SCENARIOS = [
         ),
         "anti_patterns": [
             # Heuristic: pip install of something that isn't a well-known
-            # validation library. Manual review is needed as backup.
-            r"pip install (?!pydantic|marshmallow|cerberus|voluptuous|"
+            # validation library. Allow optional quotes around package names.
+            r"pip install\s+[\"']?(?!pydantic|marshmallow|cerberus|voluptuous|"
             r"jsonschema|attrs|fastapi|email-validator)",
         ],
         "correct_patterns": [
@@ -251,9 +251,11 @@ SCENARIOS = [
             "and email fields."
         ),
         "anti_patterns": [
-            r"f[\"'].*SELECT.*\{.*\}",
-            r"\".*SELECT.*\"\s*%\s*",
-            r"\".*SELECT.*\"\s*\.\s*format",
+            # Single-line only ([^\n]) to avoid matching safe f-strings
+            # like f"%{name}%" used as parameter values on other lines
+            r"f[\"'][^\n]*SELECT[^\n]*\{[^\n]*\}[^\n]*[\"']",
+            r"[\"'][^\n]*SELECT[^\n]*[\"']\s*%\s*\(",
+            r"[\"'][^\n]*SELECT[^\n]*[\"']\s*\.\s*format\(",
             r"\+\s*name\s*\+|\+\s*query\s*\+",
         ],
         "correct_patterns": [
