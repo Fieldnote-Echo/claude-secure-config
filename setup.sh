@@ -40,7 +40,7 @@ readonly INTERNAL_DIR="$SCRIPT_DIR/internal"
 
 # Explicit allowlist of shared rule files — no wildcards for security
 # If you add a new rule file to rules/, add it here
-readonly SHARED_RULES="code-hygiene.md cognitive-scaffold.md commit-preferences.md deliberation.md git-conventions.md security.md task-protocol.md"
+readonly SHARED_RULES="code-hygiene.md cognitive-scaffold.md deliberation.md git-conventions.md security.md task-protocol.md"
 
 # --- Helpers ---
 

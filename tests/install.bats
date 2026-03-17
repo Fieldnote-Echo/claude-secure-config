@@ -85,7 +85,7 @@ teardown() {
   assert_success
   local count
   count="$(count_installed_rules)"
-  assert_equal "$count" "7"
+  assert_equal "$count" "6"
 }
 
 @test "internal rules installed when present" {

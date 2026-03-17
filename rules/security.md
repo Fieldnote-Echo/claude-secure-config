@@ -38,8 +38,7 @@
 
 ## Secrets
 
-- Never commit `.env`, credentials, API keys, or tokens — including as fallback/default values in code. Use your platform's secret manager (Cloudflare dashboard, AWS SSM, Vault, CI environment variables).
-- Secrets belong in your deployment platform's secret manager, not in version control
+- Never commit secrets or use them as fallback values. Use your platform's secret manager.
 - Never hardcode JWT secrets, API keys, or tokens as fallback values. Instead of `process.env.SECRET || "default-secret"`, fail explicitly: `process.env.SECRET ?? throw new Error("SECRET not set")`
 
 ## Error Handling
@@ -49,36 +48,18 @@
 - Schema validation errors may return field-level issues (no secrets in schemas)
 - For streaming responses: send generic error events, never raw error messages
 
-## Async Safety
-
-- Every `await` must have error handling — wrap in try/catch or use `.catch()` on the promise
-- Every `fetch`/HTTP request must handle network failure, timeouts, and non-2xx responses
-- Handle promise rejections explicitly — attach `.catch()` or use try/catch with await. Never fire-and-forget a promise.
-- For concurrent operations: use `Promise.allSettled` when partial failure is acceptable, `Promise.all` only when all must succeed
-
 ## CORS
 
 - Use specific origins in CORS configuration — never `*` if endpoints send credentials
 - Include `Vary: Origin` header when CORS origin is dynamic
 
-## Security Headers
-
-- Set on all responses: `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options` or CSP `frame-ancestors`
-- Session cookies: `HttpOnly`, `Secure`, `SameSite=Lax` minimum
-- Include CSRF tokens on all state-changing requests, or use `SameSite=Strict` cookies
-- Never ship debug mode, verbose errors, or development configs to production. Use environment-based gating (`if (env === 'development')`) and strip debug code at build time.
-
 ## Supply Chain
 
-- Verify AI-suggested packages exist in the registry before installing — [19.7% are fabricated](https://www.securityweek.com/ai-hallucinations-create-a-new-software-supply-chain-threat/) (slopsquatting)
-- Verify the package has meaningful download counts and a real maintainer
-- Verify that API methods called on real libraries actually exist in the current version's docs — check for deprecation notices
+- Verify AI-suggested packages exist in the registry before installing — 19.7% are fabricated (slopsquatting)
+- Verify the package has meaningful download counts, a real maintainer, and that API methods actually exist in the current version's docs
 - Flag GPL, AGPL, SSPL, and EUPL dependencies for review before adding — AI suggests copyleft-licensed packages without flagging license obligations
-- Commit lockfiles to version control. CI must use frozen-lockfile installs (`npm ci`, `pip install --require-hashes`)
-- Run `npm audit` / `pip audit` before merging dependency changes
-- Review lockfile diffs — unexpected additions need explanation
-- Pin CI actions to full-length commit SHAs
-- Do not install third-party MCP servers, AI skills, or agent plugins without code review
+- Commit lockfiles. CI must use frozen-lockfile installs (`npm ci`, `pip install --require-hashes`). Run `npm audit` / `pip audit` before merging dependency changes. Review lockfile diffs.
+- Pin CI actions to full-length commit SHAs. Do not install third-party MCP servers, AI skills, or agent plugins without code review.
 
 ## Cryptographic Operations
 
@@ -98,9 +79,16 @@
 ## AI Tooling Safety
 
 - Before opening any cloned repository, inspect `.claude/`, `.cursor/`, `.github/copilot/`, and similar AI tool config directories for unexpected shell commands, URL overrides, or environment variable manipulation
-- Never trust `ANTHROPIC_BASE_URL` or similar API endpoint overrides from repository-level config files — these can exfiltrate API keys ([CVE-2025-59536, CVE-2026-21852](https://research.checkpoint.com/2026/rce-and-api-token-exfiltration-through-claude-code-project-files-cve-2025-59536/))
+- Never trust `ANTHROPIC_BASE_URL` or similar API endpoint overrides from repository-level config files — these can exfiltrate API keys (CVE-2025-59536, CVE-2026-21852)
 - Never run Claude Code with `--dangerously-skip-permissions` on untrusted code — this bypasses all permission checks, deny rules, and hooks
 - When reviewing PRs, check for additions to AI tool config directories — these are attack surfaces
+
+## Security Headers
+
+- Set on all responses: `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options` or CSP `frame-ancestors`
+- Session cookies: `HttpOnly`, `Secure`, `SameSite=Lax` minimum
+- Include CSRF tokens on all state-changing requests, or use `SameSite=Strict` cookies
+- Never ship debug mode, verbose errors, or development configs to production. Use environment-based gating (`if (env === 'development')`) and strip debug code at build time.
 
 ## Logging
 

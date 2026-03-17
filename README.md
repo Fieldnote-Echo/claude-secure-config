@@ -30,10 +30,9 @@ Layer 3: Scaffold   → "Why are we doing this?"  (cognitive partnership)
 
 | File | Purpose |
 |------|---------|
-| `rules/security.md` | Input validation, access control, injection, XSS, SSRF, secrets, error handling, async safety, CORS, headers, supply chain, MCP/tool security, AI tooling safety, crypto, logging |
-| `rules/code-hygiene.md` | Type safety, granular error handling, search-before-create, verification, debt budget, AI discipline |
-| `rules/git-conventions.md` | Git safety, destructive operation protocol |
-| `rules/commit-preferences.md` | AI attribution (trailers not co-authorship), commit message format |
+| `rules/security.md` | Input validation, access control, injection, XSS, SSRF, secrets, error handling, CORS, supply chain, MCP/tool security, AI tooling safety, crypto, headers, logging |
+| `rules/code-hygiene.md` | Type safety, granular error handling, async safety, search-before-create, verification, debt budget, AI discipline |
+| `rules/git-conventions.md` | Git safety, destructive operation protocol, commit format, AI attribution, scope discipline |
 
 ### Layer 1: Enforcement
 
@@ -118,7 +117,7 @@ Claude Code loads `.md` files from `.claude/rules/` as project instructions:
 .claude/rules/org/*.md     → Shared rules (from this repo)
 ```
 
-This repo's rules total ~347 lines. Total budget across all loaded rules is roughly 500-800 lines before attention degrades — leaves room for project-specific additions.
+This repo's rules total ~310 lines (~3,693 tokens). There is no hard ceiling, but compliance degrades as instruction volume grows — keep total loaded rules (shared + project-specific) as concise as possible and verify behavior after changes.
 
 ## Hooks
 
