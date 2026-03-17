@@ -63,9 +63,9 @@ The quick start above uses **symlinks** (recommended). Other options:
 |--------|---------|---------|
 | Copy | `setup.sh /path/to/repo --copy` | Re-run to update |
 | Manual | Copy individual files to `.claude/rules/` | Manual |
-| @import | `@/path/to/rules/security.md` in CLAUDE.md | Automatic |
+| @import | `@/path/to/rules/security.md` in CLAUDE.md | Automatic (path must resolve on every dev machine) |
 
-Run `setup.sh --help` for all flags. See the [setup.sh reference](../../wiki/Setup.sh-Reference) for provenance tracking and advanced configuration.
+Run `setup.sh --help` for all flags. See the [setup.sh reference](https://github.com/Fieldnote-Echo/claude-secure-config/wiki/Setup.sh-Reference) for provenance tracking and advanced configuration.
 
 ## Hooks
 
@@ -82,7 +82,7 @@ For isolation beyond hooks: [Anthropic's built-in sandbox](https://www.anthropic
 internal/*.md              → Private rules (gitignored, install with --internal)
 ```
 
-See the wiki for [customization patterns](../../wiki/Customization-Patterns), [internal rules](../../wiki/Customization-Patterns#how-do-i-add-internal-or-private-rules), and [compaction survival](../../wiki/Customization-Patterns#how-do-i-keep-rules-from-being-lost-during-long-sessions).
+See the wiki for [customization patterns](https://github.com/Fieldnote-Echo/claude-secure-config/wiki/Customization-Patterns), [internal rules](https://github.com/Fieldnote-Echo/claude-secure-config/wiki/Customization-Patterns#how-do-i-add-internal-or-private-rules), and [compaction survival](https://github.com/Fieldnote-Echo/claude-secure-config/wiki/Customization-Patterns#how-do-i-keep-rules-from-being-lost-during-long-sessions).
 
 ## Limitations
 
@@ -98,7 +98,7 @@ Built on [OWASP Top 10:2025](https://owasp.org/Top10/2025/), [OWASP Agentic Top 
 
 ## Contributing
 
-PRs welcome. Keep rules generic, concise, and backed by data where possible. See the [contributing guide](../../wiki/Contributing) for rule design principles and testing requirements.
+PRs welcome. Keep rules generic, concise, and backed by data where possible. See the [contributing guide](https://github.com/Fieldnote-Echo/claude-secure-config/wiki/Contributing) for rule design principles and testing requirements.
 
 ## License
 
