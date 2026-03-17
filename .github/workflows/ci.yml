@@ -99,3 +99,18 @@ jobs:
           sudo mv /tmp/lychee /usr/local/bin/
       - name: Check links
         run: lychee --no-progress --accept 429 rules/ hooks.md README.md
+
+  semgrep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Install semgrep
+        run: pip install semgrep==1.155.0
+      - name: Validate rules against fixtures
+        run: bash tests/semgrep-validate.sh
+      - name: Scan repository
+        run: semgrep scan --config .semgrep/ . --exclude='tests/fixtures/**' --error
